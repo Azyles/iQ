@@ -16,20 +16,34 @@ async def on_ready():
 
 @bot.event
 async def on_message(message):
-    try:
-      aimessage = make_single_prediction(message.content, rescale=True)
-      print(message.content)
-      toxic = aimessage["toxic"]
-      severe_toxic = aimessage["severe_toxic"]
-      obscene = aimessage["obscene"]
-      threat = aimessage["threat"]
-      insult = aimessage["insult"]
-      if round(toxic, 2) > 0.8:
-        print(f'Bad {toxic * 100}%')
-      else:
-        print('Approved')
-    except:
-      pass
+  channel = message.channel
+  try:
+    aimessage = make_single_prediction(message.content, rescale=True)
+    toxic = aimessage["toxic"]
+    severe_toxic = aimessage["severe_toxic"]
+    obscene = aimessage["obscene"]
+    threat = aimessage["threat"]
+    insult = aimessage["insult"]
+    if round(toxic, 2) > 0.8:
+      embed = discord.Embed(title="Message Review", description=f"Message bad", color=0xFFCD00)
+      embed.set_thumbnail(url="https://i.imgur.com/79zZez6.png")
+      embed.add_field(name="Toxic",
+                      value=str(round(toxic, 2)), inline=False)
+      embed.add_field(name="Severe Toxic",
+                      value=str(round(severe_toxic, 2)), inline=False)
+      embed.add_field(name="Insult",
+                      value=str(round(insult, 2)), inline=False)
+      embed.add_field(name="Obscene",
+                      value=str(round(obscene, 2)), inline=False)
+      embed.add_field(name="Threat",
+                      value=str(round(threat, 2)), inline=False)
+      embed.add_field(name="Important Links", value="f links", inline=False)
+      embed.set_footer(text="iQ ")
+      await channel.send(embed = embed)
+    else:
+      print(f'Approved {round(toxic, 2)}')
+  except:
+    pass
 
 @bot.command()
 async def ping(ctx):
