@@ -19,8 +19,8 @@ db = firestore.client()
 #https://discord.com/api/oauth2/authorize?client_id=743495325968498689&permissions=8&scope=bot
 
 bot = commands.Bot('Q ', description='iQ Bot',case_insensitive=True )
-
-showlist = ['Essential Bot']
+colors=[0xCABDA6,0x908775,0xF4E6C9,0x5B574F,0x6D5F42,0xBBA475]
+showlist = ['ESSENTIAL']
 @bot.event
 async def on_guild_join(guild):
   doc_ref = db.collection(u'Servers').document(str(guild.id))
@@ -40,48 +40,6 @@ async def on_guild_join(guild):
       u'Joined': dt_string,
     })
           
-'''
-overwrites = {
-      guild.default_role: discord.PermissionOverwrite(send_messages=False),
-      guild.me: discord.PermissionOverwrite(send_messages=True)
-    }
-await guild.create_text_channel('iq-log', overwrites=overwrites)
-    for channel in guild.text_channels:
-      if channel.name == "Channel name":
-          doc_ref.set({
-          u'ID': str(guild.id),
-          u'PG': u'No',
-          u'Credits': 10,
-          u'ModerationChannel': str(channel.id),
-          u'Warns': 3,
-          u'Joined': dt_string,
-          })
-          break
-'''
-
-@bot.event
-async def Setup(payload):
-    guild_id = payload.guild_id
-    guild = discord.utils.find(lambda g : g.id == guild_id, bot.guilds)
-
-    if payload.emoji.name == '\N{LOCK}':
-      role = discord.utils.get(guild.roles, name='Member')
-    else:
-      role = discord.utils.get(guild.roles, name=payload.emoji.name)
-      
-    if role is not None:
-      member = discord.utils.find(lambda m : m.id == payload.user_id, guild.members)
-      if member is not None:
-        await member.add_roles(role)
-        print("Someone is in!")
-
-      else:
-        print("Member not found")
-
-    else:
-        print("Role not Found")
-
-
 
 @bot.event
 async def on_ready():
@@ -90,6 +48,7 @@ async def on_ready():
     #for guild in bot.guilds:
     #  if guild.name == '743495325968498689':
     #    break
+
 
 '''
 @bot.event
@@ -133,7 +92,7 @@ async def ping(ctx):
 async def Add(ctx,choice='none',field='none'):  
   if choice == 'none':
     await ctx.send('```You need to specify what to add```')
-  if choice == 'ModServer':
+  if choice == 'ModLog':
     guild = ctx.message.guild
     overwrites = {
           guild.default_role: discord.PermissionOverwrite(send_messages=False),
@@ -141,12 +100,11 @@ async def Add(ctx,choice='none',field='none'):
     }
     await guild.create_text_channel('iq-log', overwrites=overwrites)
 
-
 @bot.command()
 async def Set(ctx,choice='none',field='none'):  
   if choice == 'none':
     await ctx.send('```You need to specify what to set```')
-  if choice == 'ModServer':
+  if choice == 'ModLog':
     doc_ref = db.collection(u'Servers').document(str(ctx.message.guild.id))
     doc_ref.set({
       u'ModerationChannel': str(field),
@@ -169,33 +127,35 @@ async def clear(ctx, amount=5):
         if doc_ref.get().exists:
           server = u'{}'.format(doc_ref.get({u'ModerationChannel'}).to_dict()['ModerationChannel'])
           modchannel = bot.get_channel(int(server))
-          await modchannel.send(f'{ctx.author.mention} deleted {amount} messages')
+          embed = discord.Embed(title=f"Cleared", description= f"{ctx.author.name} Deleted {amount} messages",color=0x4BC3FF)
+          await modchannel.send(embed=embed)
 
 @bot.command(pass_context=True)
 async def warn(ctx, member: discord.Member, *, content):
     channel = await member.create_dm()
     embed = discord.Embed(
-        title="Warning", description="You are receiving a warning for the following reason: " + content + " If you keep up this behavior it may result in a kick/ban.", color=0x00FFCD)
+        title="Warning", description="You are receiving a warning for the following reason: " + content + " If you keep up this behavior it may result in a kick/ban.", color=0xFFFF4B)
     await asyncio.sleep(1)
     await channel.send(embed=embed)
     doc_ref = db.collection(u'Servers').document(str(ctx.message.guild.id))
     if doc_ref.get().exists:
       server = u'{}'.format(doc_ref.get({u'ModerationChannel'}).to_dict()['ModerationChannel'])
       modchannel = bot.get_channel(int(server))
-      await modchannel.send(f'{member.mention} has been warned for {content} by {ctx.author.mention}')
+      embed = discord.Embed(title=f"Warned", description= f"{member.mention} has been warned for {content} by {ctx.author.mention}",color=0xFFFF4B)
+      await modchannel.send(embed=embed)
 
 @bot.command()
 async def kick(ctx, member: discord.Member, reason=None):
     if reason == None:
         embed = discord.Embed(
-            title="Error", description='Please specify reason! !kick <User> <Reason>', color=0xBB0000)
+            title="Error", description='Please specify reason! !kick <User> <Reason>', color=0xFF7373)
 
         await ctx.send(embed=embed)
     else:
         try:
           channel = await member.create_dm()
           embed = discord.Embed(
-              title="Kicked", description="You are receiving a Kick for the following reason: " + reason , color=0x00FFCD)
+              title="Kicked", description="You are receiving a Kick for the following reason: " + reason , color=0xFF7373)
           await channel.send(embed=embed)
         except:
           pass
@@ -203,26 +163,26 @@ async def kick(ctx, member: discord.Member, reason=None):
         if doc_ref.get().exists:
           server = u'{}'.format(doc_ref.get({u'ModerationChannel'}).to_dict()['ModerationChannel'])
           modchannel = bot.get_channel(int(server))
-          await modchannel.send(f'{member.mention} has been removed for {reason} by {ctx.author.mention}')
+          embed = discord.Embed(title=f"Kicked", description= f"{member.mention} has been kicked for {reason} by {ctx.author.mention}",color=0xFF7373)
+          await modchannel.send(embed=embed)
         await member.kick()
         embed = discord.Embed(
-            title="Removed", description=f"Successfully kicked {member} for {reason}", color=0x00FFCD)
+            title="Removed", description=f"Successfully kicked {member} for {reason}", color=0xFF7373)
 
         await ctx.send(embed=embed)
-
 
 @bot.command()
 async def ban(ctx, member: discord.Member, reason=None):
     if reason == None:
         embed = discord.Embed(
-            title="Error", description='Please specify reason! !ban <User> <Reason>', color=0xBB0000)
+            title="Error", description='Please specify reason! !ban <User> <Reason>', color=0xFF4B4B)
 
         await ctx.send(embed=embed)
     else:
         try:
           channel = await member.create_dm()
           embed = discord.Embed(
-              title="Banned", description="You are receiving a BAN for the following reason: " + reason , color=0x00FFCD)
+              title="Banned", description="You are receiving a BAN for the following reason: " + reason , color=0xFF4B4B)
           await channel.send(embed=embed)
         except:
           pass
@@ -230,15 +190,13 @@ async def ban(ctx, member: discord.Member, reason=None):
         if doc_ref.get().exists:
           server = u'{}'.format(doc_ref.get({u'ModerationChannel'}).to_dict()['ModerationChannel'])
           modchannel = bot.get_channel(int(server))
-          await modchannel.send(f'{member.mention} has been banned for {reason} by {ctx.author.mention}')
+          embed = discord.Embed(title=f"Banned", description= f"{member.mention} has been banned for {reason} by {ctx.author.mention}",color=0xFF4B4B)
+          await modchannel.send(embed=embed)
         await member.ban()
         embed = discord.Embed(
-            title="BANNED", description=f"Successfully banned {member} for {reason}", color=0x00FFCD)
+            title="BANNED", description=f"Successfully banned {member} for {reason}", color=0xFF4B4B)
 
         await ctx.send(embed=embed)
-
-
-
 
 @bot.command()
 async def HelpMe(ctx):
