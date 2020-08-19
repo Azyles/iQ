@@ -16,6 +16,8 @@ firebase_admin.initialize_app(cred)
 
 db = firestore.client()
 
+#https://discord.com/api/oauth2/authorize?client_id=743495325968498689&permissions=8&scope=bot
+
 bot = commands.Bot('Q ', description='iQ Bot',case_insensitive=True )
 
 showlist = ['Essential Bot']
@@ -138,13 +140,17 @@ async def Add(ctx,choice='none',field='none'):
           guild.me: discord.PermissionOverwrite(send_messages=True)
     }
     await guild.create_text_channel('iq-log', overwrites=overwrites)
-    for channel in guild.text_channels:
-      if channel.name == "iq-log":
-        doc_ref = db.collection(u'Servers').document(str(guild.id))
-        doc_ref.set({
-          u'ModerationChannel': str(channel.id)
-        })
-        break
+
+
+@bot.command()
+async def Set(ctx,choice='none',field='none'):  
+  if choice == 'none':
+    await ctx.send('```You need to specify what to set```')
+  if choice == 'ModServer':
+    doc_ref = db.collection(u'Servers').document(str(ctx.message.guild.id))
+    doc_ref.set({
+      u'ModerationChannel': str(field),
+    },merge=True)
 
 @bot.command()
 async def server(ctx):
@@ -153,12 +159,17 @@ async def server(ctx):
 @bot.command()
 async def clear(ctx, amount=5):
     amount = amount + 1
-    upperLimit = 101
+    upperLimit = 59
     if amount > upperLimit:
-        await ctx.send("`Clears cannot excced 100`")
+        await ctx.send("`Clears cannot excced 59`")
 
     if upperLimit >= amount:
         await ctx.channel.purge(limit=amount)
+        doc_ref = db.collection(u'Servers').document(str(ctx.message.guild.id))
+        if doc_ref.get().exists:
+          server = u'{}'.format(doc_ref.get({u'ModerationChannel'}).to_dict()['ModerationChannel'])
+          modchannel = bot.get_channel(int(server))
+          await modchannel.send(f'{ctx.author.mention} deleted {amount} messages')
 
 @bot.command(pass_context=True)
 async def warn(ctx, member: discord.Member, *, content):
@@ -167,6 +178,11 @@ async def warn(ctx, member: discord.Member, *, content):
         title="Warning", description="You are receiving a warning for the following reason: " + content + " If you keep up this behavior it may result in a kick/ban.", color=0x00FFCD)
     await asyncio.sleep(1)
     await channel.send(embed=embed)
+    doc_ref = db.collection(u'Servers').document(str(ctx.message.guild.id))
+    if doc_ref.get().exists:
+      server = u'{}'.format(doc_ref.get({u'ModerationChannel'}).to_dict()['ModerationChannel'])
+      modchannel = bot.get_channel(int(server))
+      await modchannel.send(f'{member.mention} has been warned for {content} by {ctx.author.mention}')
 
 @bot.command()
 async def kick(ctx, member: discord.Member, reason=None):
@@ -183,11 +199,17 @@ async def kick(ctx, member: discord.Member, reason=None):
           await channel.send(embed=embed)
         except:
           pass
+        doc_ref = db.collection(u'Servers').document(str(ctx.message.guild.id))
+        if doc_ref.get().exists:
+          server = u'{}'.format(doc_ref.get({u'ModerationChannel'}).to_dict()['ModerationChannel'])
+          modchannel = bot.get_channel(int(server))
+          await modchannel.send(f'{member.mention} has been removed for {reason} by {ctx.author.mention}')
         await member.kick()
         embed = discord.Embed(
             title="Removed", description=f"Successfully kicked {member} for {reason}", color=0x00FFCD)
 
         await ctx.send(embed=embed)
+
 
 @bot.command()
 async def ban(ctx, member: discord.Member, reason=None):
@@ -204,6 +226,11 @@ async def ban(ctx, member: discord.Member, reason=None):
           await channel.send(embed=embed)
         except:
           pass
+        doc_ref = db.collection(u'Servers').document(str(ctx.message.guild.id))
+        if doc_ref.get().exists:
+          server = u'{}'.format(doc_ref.get({u'ModerationChannel'}).to_dict()['ModerationChannel'])
+          modchannel = bot.get_channel(int(server))
+          await modchannel.send(f'{member.mention} has been banned for {reason} by {ctx.author.mention}')
         await member.ban()
         embed = discord.Embed(
             title="BANNED", description=f"Successfully banned {member} for {reason}", color=0x00FFCD)
