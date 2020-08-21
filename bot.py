@@ -13,9 +13,16 @@ from firebase_admin import credentials
 from firebase_admin import firestore
 import logzero
 from logzero import logger
+import logging
+import requests, json
+from datetime import date
 
 cred = credentials.Certificate('FrBase.json')
 firebase_admin.initialize_app(cred)
+
+city_name = 'Monterey'
+api_key = "549b0eaf0ba1e27619cf96fb0ba32a1b"
+base_url = "http://api.openweathermap.org/data/2.5/weather?"
 
 db = firestore.client()
 
@@ -29,6 +36,8 @@ start = time.time()
 bot = commands.Bot('Q ', description='iQ Bot',case_insensitive=True )
 colors=[0xD0BCAB,0xB9AA9E ]
 showlist = ['ESSENTIAL']
+bot.remove_command('help')
+
 @bot.event
 async def on_guild_join(guild):
   doc_ref = db.collection(u'Servers').document(str(guild.id))
@@ -114,6 +123,13 @@ async def Add(ctx,choice='none',field='none'):
     await guild.create_text_channel('iq-log', overwrites=overwrites)
 
 @bot.command()
+async def Get(ctx,choice='none',field='none'):  
+  if choice == 'none':
+    await ctx.send('```You need to specify what to Get```')
+  if choice == 'Channel':
+    await ctx.send(f'`{ctx.message.channel.name}: {ctx.message.channel.id}`')
+
+@bot.command()
 async def Set(ctx,choice='none',field='none'):  
   if choice == 'none':
     await ctx.send('```You need to specify what to set```')
@@ -122,6 +138,7 @@ async def Set(ctx,choice='none',field='none'):
     doc_ref.set({
       u'ModerationChannel': str(field),
     },merge=True)
+    await bot.get_channel(field).send('`Mod Log Successfully Set`')
 
 @bot.command()
 async def server(ctx):
@@ -228,17 +245,6 @@ async def ban(ctx, member: discord.Member, reason=None):
           await ctx.send(embed=embed)
         except:
           pass
-          
-@bot.command()
-async def HelpMe(ctx):
-  await ctx.send(f'<@{ctx.author.id}> How can I help you?')
-
-
-@bot.command()
-async def dm(ctx, server: int, * message):
-  channel = bot.get_channel(server)
-  await channel.send(message)
-
 
 @bot.event
 async def on_message(message):
@@ -263,9 +269,23 @@ async def Mute(ctx,member: discord.Member):
   await member.add_roles(role)
 
 @bot.command()
-async def Requst(ctx, * message):
-  #await member.add_roles(role)
-  await ctx.send(message)
+async def Invite(ctx, member: discord.Member):
+    channel = await member.create_dm()
+    #creating invite link
+    invitelink = await ctx.channel.create_invite(max_uses=1,unique=True)
+    #dming it to the person
+    await channel.send(invitelink)
+
+@bot.command()
+async def Feedback(ctx, * message):
+  today = date.today()
+  datetoday = today.strftime("%m/%d/%y")
+  logzero.logfile("feedback.log", maxBytes=10000, backupCount=3)
+  logger.info(f"{datetoday} {ctx.author.id} {message}")
+  channel = await ctx.author.create_dm()
+  await channel.send('Thanks for the feedback')
+  time.sleep(5)
+  await channel.send(f'Received`{datetoday} {ctx.author.id} {message}`')
 
 
 @bot.command()
@@ -303,6 +323,105 @@ async def Host(ctx):
   await ctx.send(embed=embed)
 
 
+@bot.command()
+async def Weather(ctx, *, City):
+    complete_url = base_url + "appid=" + api_key + "&q=" + City
+    response = requests.get(complete_url)
+    x = response.json()
+    if x["cod"] != "404": 
+        y = x["main"] 
+        current_temperature = str(round(y["temp"]-273.15,2))
+        current_pressure = y["pressure"] 
+        current_humidiy = y["humidity"]
+        min_temp = format(round(y["temp_min"]-273.15,2))
+        max_temp = format(round(y["temp_max"]-273.15,2))
+        feels_like = format(round(y["feels_like"]-273.15,2))
+        z = x["weather"] 
+        icon = z[0]["icon"]
+        weather_description = z[0]["description"] 
+        weather_main = z[0]["main"] 
+        w = x["wind"]
+        wind = w["speed"]
+        wind_deg = w["deg"]
+
+        def faren(tem):
+          tem = float(tem)
+          return str(round(tem*9/5+32,2))
+
+        def degDir(d):
+          dirs = ['N', 'N/NE', 'NE', 'E/NE', 'E', 'E/SE', 'SE', 'S/SE', 'S', 'S/SW', 'SW', 'W/SW', 'W', 'W/NW', 'NW', 'N/NW']
+          ix = round(d / (360. / len(dirs)))
+          return dirs[ix % len(dirs)]
+
+
+        embed = discord.Embed(
+            title=City,
+            description=
+            "Synapse Weather gets information with the help of openweathermap.org",
+            color=random.choice(colors))
+        embed.set_author(
+            name='Synapse', url="https://synapsebot.netlify.app")
+        embed.set_thumbnail(url="https://i.imgur.com/Q66BhxI.png")
+
+        embed.add_field(
+            name="Temperature",
+            value= current_temperature + "°C - " + str(faren(current_temperature)) + "°F",
+            inline = False)
+        
+        embed.add_field(
+            name="Feels Like",
+            value=feels_like + "°C - " + str(faren(feels_like)) + "°F",
+            inline=False)
+        embed.add_field(
+            name="Minimum Temperature",
+            value=min_temp + "°C - " + str(faren(min_temp)) + "°F",
+            inline=False)
+        
+        embed.add_field(
+            name="Maximum Temperature",
+            value=max_temp + "°C - " + str(faren(max_temp)) + "°F",
+            inline=False)
+
+        embed.add_field(
+            name="Wind",
+            value=str(wind) + " mph " + str(degDir(wind_deg)),inline=False)
+            
+        embed.add_field(
+            name="Humidity", value= str(current_humidiy) + "%", inline=False)
+
+        embed.add_field(
+            name="Atmospheric Pressure",
+            value= str(current_pressure) + " hPa",
+            inline=False)
+          
+        embed.add_field(
+            name="Description",
+            value=weather_description,inline=False)
+
+        await ctx.send(embed=embed)
+    else: 
+        embed = discord.Embed(
+            title="Error", description="City Not Found", color=0xFF8080)
+        await ctx.send(embed=embed)
+
+@bot.command(pass_context=True)
+async def Help(ctx):
+    embed = discord.Embed(
+        title="iQ", description="iQ is the ultimate moderation bot! It has everything relating to server management. ", color=random.choice(colors))
+    await asyncio.sleep(1)
+    embed.set_footer(text="iQ Bot by Synapse")
+    embed.add_field(name="Delete Messages", value="`Q Clear (amount)`", inline=False)
+    embed.add_field(name="Warn", value="`Q Warn (mention user) (reason)`", inline=False)
+    embed.add_field(name="Kick", value="`Q Kick (mention user) (reason)`", inline=False)
+    embed.add_field(name="Ban", value="`Q Ban (mention user) (reason)`", inline=False)
+    embed.add_field(name="Ban", value="`Q Mute (mention user)`", inline=False)
+    embed.add_field(name="Weather", value="`Q Weather (City)`", inline=False)
+    embed.add_field(name="Invite to Server", value="`Q Invite`", inline=False)
+    embed.add_field(name="Advanced Commands", value="------------", inline=False)
+    embed.add_field(name="Get Channel ID", value="`Q Get Channel`", inline=False)
+    embed.add_field(name="Set ModLog", value="`Q Set ModLog (channel id)`", inline=False)
+    embed.add_field(name="Host Information", value="`Q Host`  ", inline=False)
+    await ctx.send(embed=embed)
 
 @bot.event
 async def on_command_error(ctx, error):
