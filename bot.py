@@ -42,7 +42,7 @@ songs = asyncio.Queue()
 start = time.time()
 
 bot = commands.Bot('Q ', description='iQ Bot',case_insensitive=True )
-colors=[0xD0BCAB,0xB9AA9E ]
+colors=[0xAD303F,0xBE3B4A,0x9D2533,0xD83144]
 showlist = ['Q Help']
 bot.remove_command('help')
 
@@ -574,10 +574,6 @@ async def ping(ctx):
     ping = round(bot.latency*1000)
     await ctx.send(f"{ctx.author.mention} The ping of this bot is {ping} ms")
 
-@bot.command()
-async def SuckMyDick(ctx):
-    await ctx.send(f"{ctx.author.mention} an escort has been sent to your location")
-
 
 @bot.command()
 async def Add(ctx,choice='none',field='none'):  
@@ -814,7 +810,7 @@ async def ban(ctx, member: discord.Member, reason=None):
   if str(moderationRole) == 'None':
     if reason == None:
         embed = discord.Embed(
-            title="Error", description='Please specify reason! !ban <User> <Reason>', color=random.choice(colors))
+            title="Error", description='Please specify reason! `Q ban <User> <Reason>`', color=random.choice(colors))
         embed.set_footer(text="iQ Bot by Aevus : Q Help")
         await ctx.send(embed=embed)
     else:
@@ -871,7 +867,6 @@ async def ban(ctx, member: discord.Member, reason=None):
     else:
       await ctx.send("`Missing Permissions`")
   
-    
 @bot.event
 async def on_message(message):
   role = discord.utils.find(lambda r: r.name == 'Muted', message.guild.roles)
@@ -880,13 +875,14 @@ async def on_message(message):
     try:
       channel = await message.author.create_dm()
       embed = discord.Embed(
-        title="Muted", description="You are muted in the channel! Messages you send will be deleted immediately.", color=0x00FFCD)
+        title="Muted", description=f"You are muted from {message.guild.name}! Messages you send will be deleted immediately.", color=random.choice(colors))
       embed.set_footer(text="iQ Bot by Aevus : Q Help")
       await asyncio.sleep(1)
       await channel.send(embed=embed)
     except:
       pass
   else:
+    
     await bot.process_commands(message)
 
 @bot.command()
@@ -1077,30 +1073,6 @@ async def Weather(ctx, *, City):
             title="Error", description="City Not Found", color=0xFF8080)
         await ctx.send(embed=embed)
 
-@bot.command()
-async def quickpoll(ctx, question, *options: str):
-  if len(options) <= 1:
-      await ctx.send('You need more than one option to make a poll!')
-      return
-  if len(options) > 10:
-      await ctx.send('You cannot make a poll for more than 10 things!')
-      return
-
-  if len(options) == 2 and options[0] == 'yes' and options[1] == 'no':
-      reactions = ['✅', '❌']
-  else:
-      reactions = ['1⃣', '2⃣', '3⃣', '4⃣', '5⃣', '6⃣', '7⃣', '8⃣', '9⃣', '🔟']
-
-  description = []
-  for x, option in enumerate(options):
-      description += '\n {} {}'.format(reactions[x], option)
-  embed = discord.Embed(title=question, description=''.join(description))
-  react_message = await ctx.send(embed=embed)
-  for reaction in reactions[:len(options)]:
-      await ctx.add_reaction(react_message, reaction)
-  embed.set_footer(text='Poll ID: {}'.format(react_message.id))
-  await ctx.edit_message(react_message, embed=embed)
-
 @bot.command(pass_context=True)
 async def Help(ctx):
     embed = discord.Embed(
@@ -1186,4 +1158,4 @@ if __name__ == '__main__':  # Ensures this is the file being ran
 bot.add_cog(Music(bot))
 keep_alive()
 token = os.environ.get("DISCORD_BOT_SECRET")
-bot.run(token)  
+bot.run(token)    
