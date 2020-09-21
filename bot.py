@@ -17,6 +17,7 @@ from logzero import logger
 import logging
 import requests, json
 from datetime import date
+from uptime import uptime
 
 import youtube_dl
 import functools
@@ -41,7 +42,7 @@ songs = asyncio.Queue()
 #uptime
 start = time.time()
 
-bot = commands.Bot('Q ', description='iQ Bot',case_insensitive=True )
+bot = commands.Bot('Q ', description='Ultimate Moderation Bot',case_insensitive=True )
 colors=[0xAD303F,0xBE3B4A,0x9D2533,0xD83144]
 showlist = ['Q Help']
 bot.remove_command('help')
