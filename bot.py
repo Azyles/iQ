@@ -868,7 +868,7 @@ async def ban(ctx, member: discord.Member, reason=None):
           pass
     else:
       await ctx.send("`Missing Permissions`")
-  
+
 @bot.event
 async def on_message(message):
   try:
@@ -885,19 +885,26 @@ async def on_message(message):
       except:
         pass
     else:
-      pass
+      if message.content.startswith('Q '):
+        f = open("status.txt", "r")
+        status = f.read()
+        if status == "1":
+          await bot.process_commands(message)
+        elif message.content.startswith('Q Panel'):
+          await bot.process_commands(message)
+        else:
+          await message.channel.send("`IQ is currently offline, please try again later!`")
   except:
     if message.content.startswith('Q '):
       f = open("status.txt", "r")
       status = f.read()
-      print(f.read())
       if status == "1":
         await bot.process_commands(message)
       elif message.content.startswith('Q Panel'):
         await bot.process_commands(message)
       else:
         await message.channel.send("`IQ is currently offline, please try again later!`")
-      
+     
 @bot.command()
 async def Mute(ctx,member: discord.Member, *, reason):
   docs = db.collection(u'Servers').document(str(ctx.message.guild.id))
