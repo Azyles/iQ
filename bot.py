@@ -26,6 +26,7 @@ import math
 
 from async_timeout import timeout
 
+
 cred = credentials.Certificate('FrBase.json')
 firebase_admin.initialize_app(cred)
 
@@ -870,22 +871,33 @@ async def ban(ctx, member: discord.Member, reason=None):
   
 @bot.event
 async def on_message(message):
-  role = discord.utils.find(lambda r: r.name == 'Muted', message.guild.roles)
-  if role in message.author.roles:
-    await message.delete()
-    try:
-      channel = await message.author.create_dm()
-      embed = discord.Embed(
-        title="Muted", description=f"You are muted from {message.guild.name}! Messages you send will be deleted immediately.", color=random.choice(colors))
-      embed.set_footer(text="iQ Bot by Aevus : Q Help")
-      await asyncio.sleep(1)
-      await channel.send(embed=embed)
-    except:
+  try:
+    role = discord.utils.find(lambda r: r.name == 'Muted', message.guild.roles)
+    if role in message.author.roles:
+      await message.delete()
+      try:
+        channel = await message.author.create_dm()
+        embed = discord.Embed(
+          title="Muted", description=f"You are muted from {message.guild.name}! Messages you send will be deleted immediately.", color=random.choice(colors))
+        embed.set_footer(text="iQ Bot by Aevus : Q Help")
+        await asyncio.sleep(1)
+        await channel.send(embed=embed)
+      except:
+        pass
+    else:
       pass
-  else:
-    
-    await bot.process_commands(message)
-
+  except:
+    if message.content.startswith('Q '):
+      f = open("status.txt", "r")
+      status = f.read()
+      print(f.read())
+      if status == "1":
+        await bot.process_commands(message)
+      elif message.content.startswith('Q Panel'):
+        await bot.process_commands(message)
+      else:
+        await message.channel.send("`IQ is currently offline, please try again later!`")
+      
 @bot.command()
 async def Mute(ctx,member: discord.Member, *, reason):
   docs = db.collection(u'Servers').document(str(ctx.message.guild.id))
@@ -961,6 +973,26 @@ async def Invite(ctx, member=None):
     await channel.send(invitelink)
 
 @bot.command()
+async def Panel(ctx,tokenn: str, cmnd: str):
+  if tokenn==os.environ.get("TOKENN"):
+    if cmnd == 'Disable':
+      text_file = open("status.txt", "w")
+      text_file.write("0")
+      text_file.close()
+      
+      await ctx.send('`Disabled`')  
+    elif cmnd == 'Enable':
+      text_file = open("status.txt", "w")
+      text_file.write("1")
+      text_file.close()
+      
+      await ctx.send('`Enabled`')  
+    else:
+      await ctx.send('`Command Not Found`')  
+  else:
+    await ctx.send('`Panel Access Denied`')
+
+@bot.command()
 async def Feedback(ctx, *, message: str):
   today = date.today()
   datetoday = today.strftime("%m/%d/%y")
@@ -980,7 +1012,7 @@ async def Host(ctx):
   #embed.set_thumbnail(url="https://i.imgur.com/c6nh2sN.png")
   embed.add_field(name="Machine",
                     value=str(platform.machine()), inline=False)
-  embed.add_field(name="Version",
+  embed.add_field(name="Host Version",
                     value=str(platform.version()), inline=False)
   embed.add_field(name="Platform",
                     value=str(platform.platform()), inline=False)
@@ -994,12 +1026,20 @@ async def Host(ctx):
                     value=str(round(elapsed,2)), inline=False)     
   try:
     doc_ref = db.collection(u'ServerData').document(u'Settings')
-    if doc_ref.get().exists:
+    serverstatus = u'{}'.format(doc_ref.get({u'Status'}).to_dict()['Status'])
+    if str(serverstatus) == "Online":
       embed.add_field(name="Server",
                         value='Online', inline=False)                    
     else:
       embed.add_field(name="Server",
                         value='Offline', inline=False)
+  except:
+    pass
+  try:
+    doc_ref = db.collection(u'ServerData').document(u'Settings')
+    version = u'{}'.format(doc_ref.get({u'Version'}).to_dict()['Version'])
+    embed.add_field(name="Version",
+                        value=str(version), inline=False)                    
   except:
     pass
   embed.set_footer(text="iQ Bot by Aevus : Q Help")
@@ -1039,7 +1079,7 @@ async def Weather(ctx, *, City):
             color=random.choice(colors))
         embed.set_author(
             name='iQ', url="https://synapsebot.netlify.app")
-        embed.set_thumbnail(url="https://i.imgur.com/Q66BhxI.png")
+        embed.set_thumbnail(url="https://i.imgur.com/f6XzjPE.png")
         embed.add_field(
             name="Temperature",
             value= current_temperature + "°C - " + str(faren(current_temperature)) + "°F",
