@@ -584,9 +584,12 @@ async def on_guild_join(guild):
       u'ID': str(guild.id),
       u'PG': u'No',
       u'Pro': u'Base',
+      u'Booster': u'None',
       u'Credits': 10,
       u'ModRole': 'None',
+      u'WelcomeMessage': 'None',
       u'ModerationChannel': 'None',
+      u'AutoRole': 'None',
       u'Warns': 3,
       u'Joined': dt_string,
     })
@@ -897,8 +900,45 @@ async def ban(ctx, member: discord.Member, reason=None):
 @bot.event
 async def on_member_join(member):
   docs = db.collection(u'UserData').document(str(member.id))
+  guilddocs = db.collection(u'Servers').document(str(member.guild.id))
   if docs.get().exists:
-    pass
+    autorole = u'{}'.format(guilddocs.get({u'AutoRole'}).to_dict()['AutoRole'])
+    welcomemessage = u'{}'.format(guilddocs.get({u'WelcomeMessage'}).to_dict()['WelcomeMessage'])
+    if str(autorole) == "None":
+      if str(welcomemessage) == "None":
+        channel = await member.create_dm()
+        embed = discord.Embed(
+          title=f"Welcome to {member.guild.name}", description=f"{member.guild.name} is moderated by iQ.", color=random.choice(colors))
+        embed.set_footer(text="iQ Bot by Aevus : Q Help")
+        await asyncio.sleep(1)
+        await channel.send(embed=embed)
+      else:
+        channel = await member.create_dm()
+        embed = discord.Embed(
+          title=f"Welcome to {member.guild.name}", description=f"{str(welcomemessage)}.{member.guild.name} is moderated by iQ.", color=random.choice(colors))
+        embed.set_footer(text="iQ Bot by Aevus : Q Help")
+        await asyncio.sleep(1)
+        await channel.send(embed=embed)
+    else:
+      autorole = u'{}'.format(guilddocs.get({u'AutoRole'}).to_dict()['AutoRole'])
+      welcomemessage = u'{}'.format(guilddocs.get({u'WelcomeMessage'}).to_dict()['WelcomeMessage'])
+      rolee = discord.utils.get(member.guild.roles, name=f"{str(autorole)}")
+      await member.add_roles(rolee)
+
+      if str(welcomemessage) == "None":
+        channel = await member.create_dm()
+        embed = discord.Embed(
+          title=f"Welcome to {member.guild.name}", description=f"{member.guild.name} is moderated by iQ.", color=random.choice(colors))
+        embed.set_footer(text="iQ Bot by Aevus : Q Help")
+        await asyncio.sleep(1)
+        await channel.send(embed=embed)
+      else:
+        channel = await member.create_dm()
+        embed = discord.Embed(
+          title=f"Welcome to {member.guild.name}", description=f"{str(welcomemessage)}.{member.guild.name} is moderated by iQ.", color=random.choice(colors))
+        embed.set_footer(text="iQ Bot by Aevus : Q Help")
+        await asyncio.sleep(1)
+        await channel.send(embed=embed)
   else:
     if member.bot:
       pass
@@ -912,6 +952,43 @@ async def on_member_join(member):
         u'Cash': 100,
         u'Joined': dt_string,
       })
+      autorole = u'{}'.format(guilddocs.get({u'AutoRole'}).to_dict()['AutoRole'])
+      welcomemessage = u'{}'.format(guilddocs.get({u'WelcomeMessage'}).to_dict()['WelcomeMessage'])
+      if str(autorole) == "None":
+        if str(welcomemessage) == "None":
+          channel = await member.create_dm()
+          embed = discord.Embed(
+            title=f"Welcome to {member.guild.name}", description=f"{member.guild.name} is moderated by iQ.", color=random.choice(colors))
+          embed.set_footer(text="iQ Bot by Aevus : Q Help")
+          await asyncio.sleep(1)
+          await channel.send(embed=embed)
+        else:
+          channel = await member.create_dm()
+          embed = discord.Embed(
+            title=f"Welcome to {member.guild.name}", description=f"{str(welcomemessage)}.{member.guild.name} is moderated by iQ.", color=random.choice(colors))
+          embed.set_footer(text="iQ Bot by Aevus : Q Help")
+          await asyncio.sleep(1)
+          await channel.send(embed=embed)
+      else:
+        autorole = u'{}'.format(guilddocs.get({u'AutoRole'}).to_dict()['AutoRole'])
+        welcomemessage = u'{}'.format(guilddocs.get({u'WelcomeMessage'}).to_dict()['WelcomeMessage'])
+        rolee = discord.utils.get(member.guild.roles, name=f"{str(autorole)}")
+        await member.add_roles(rolee)
+
+        if str(welcomemessage) == "None":
+          channel = await member.create_dm()
+          embed = discord.Embed(
+            title=f"Welcome to {member.guild.name}", description=f"{member.guild.name} is moderated by iQ.", color=random.choice(colors))
+          embed.set_footer(text="iQ Bot by Aevus : Q Help")
+          await asyncio.sleep(1)
+          await channel.send(embed=embed)
+        else:
+          channel = await member.create_dm()
+          embed = discord.Embed(
+            title=f"Welcome to {member.guild.name}", description=f"{str(welcomemessage)}.{member.guild.name} is moderated by iQ.", color=random.choice(colors))
+          embed.set_footer(text="iQ Bot by Aevus : Q Help")
+          await asyncio.sleep(1)
+          await channel.send(embed=embed)
 
 @bot.command()
 async def coupon(ctx,actype = 'AccPro',count = 0):
@@ -979,9 +1056,41 @@ async def claim(ctx,code:str):
       await ctx.send("`Already Used`")
     
 
-        
-
-
+@bot.command()
+async def Boost(ctx, upgradetype="Guild"):        
+  docs = db.collection(u'UserData').document(str(ctx.author.id))
+  guilddocs = db.collection(u'Servers').document(str(ctx.guild.id))
+  currentboosts = u'{}'.format(docs.get({u'Boosts'}).to_dict()['Boosts'])
+  if int(currentboosts) < 1:
+    await ctx.send("`No boosts remaining`")
+  elif int(currentboosts) > 0:
+    print('a')
+    serverstatus = u'{}'.format(guilddocs.get({u'Pro'}).to_dict()['Pro'])
+    print('b')
+    booster = u'{}'.format(guilddocs.get({u'Booster'}).to_dict()['Booster'])
+    print('c')
+    if str(serverstatus) == "Pro":
+      await ctx.send(f"{str(booster)} already boosted the server")
+    else:
+      print('d')
+      newboost = int(currentboosts) - 1
+      print('e')
+      docs.set({
+            u'Boosts': newboost,
+            },merge=True)
+      guilddocs.set({
+            u'Pro': f"Pro",
+            u'Booster': str(ctx.author.id),
+            },merge=True)
+      try:
+        server = u'{}'.format(docs.get({u'ModerationChannel'}).to_dict()['ModerationChannel'])
+        modchannel = bot.get_channel(int(server))
+        embed = discord.Embed(title=f"Boosted", description= f"{ctx.guild.name} upgraded the server to PRO! Thanks to {ctx.author.mention}",color=random.choice(colors))
+        embed.set_footer(text="iQ Bot by Aevus : Q Help")
+        await modchannel.send(embed=embed)
+      except:
+        await ctx.send(f"{ctx.guild.name} upgraded the server to PRO! Thanks to {ctx.author.mention}")
+            
 @bot.command()
 async def About(ctx):
   embed = discord.Embed(title=f"{ctx.author.name}", description="iQ is the ultimate moderation bot! It has everything relating to server management. ", color=random.choice(colors))
@@ -999,7 +1108,7 @@ async def About(ctx):
     embed.add_field(name="Level",
                         value=f'{str(level)}', inline=False)
     boost = u'{}'.format(doc_ref.get({u'Boosts'}).to_dict()['Boosts'])
-    embed.add_field(name="Level",
+    embed.add_field(name="Boosts",
                         value=f'{str(boost)}', inline=False)
     pro = u'{}'.format(doc_ref.get({u'Pro'}).to_dict()['Pro'])
     embed.add_field(name="Account Type",
@@ -1362,6 +1471,12 @@ async def Guild(ctx):
     pro = u'{}'.format(doc_ref.get({u'Pro'}).to_dict()['Pro'])
     embed.add_field(name="Service",
                         value=f'{str(pro)}', inline=False)
+    booster = u'{}'.format(doc_ref.get({u'Booster'}).to_dict()['Booster'])
+    if str(booster) == "None":
+      pass
+    else:
+      embed.add_field(name="Booster",
+                          value=f'<@{str(booster)}>', inline=False)
     embed.add_field(name="Mod Channel",
                         value=f'{str(modchannel)}', inline=False)
     modrole = u'{}'.format(doc_ref.get({u'ModRole'}).to_dict()['ModRole'])
