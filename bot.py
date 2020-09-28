@@ -23,7 +23,7 @@ import youtube_dl
 import functools
 import itertools
 import math
-
+import uuid
 from async_timeout import timeout
 
 
@@ -570,6 +570,31 @@ async def on_message(message):
     pass
   await bot.process_commands(message)
 '''
+@bot.event
+async def on_guild_join(guild):
+  doc_ref = db.collection(u'Servers').document(str(guild.id))
+  if doc_ref.get().exists:
+    for channel in guild.text_channels:
+        if channel.permissions_for(guild.me).send_messages:
+            await channel.send(':)')
+        break
+  else:
+    dt_string = datetime.now().strftime("%d/%m/%Y")
+    doc_ref.set({
+      u'ID': str(guild.id),
+      u'PG': u'No',
+      u'Pro': u'Base',
+      u'Credits': 10,
+      u'ModRole': 'None',
+      u'ModerationChannel': 'None',
+      u'Warns': 3,
+      u'Joined': dt_string,
+    })
+    try:
+      await guild.create_role(name="Muted")
+    except:
+      pass  
+
 
 @bot.command()
 async def ping(ctx):
@@ -627,7 +652,7 @@ async def Set(ctx,choice='none',field='none'):
     doc_ref.set({
       u'ModerationChannel': str(field),
     },merge=True)
-    await bot.get_channel(field).send('`Mod Log Successfully Set`')
+    await ctx.send('`Mod Log Successfully Set`')
 
 @bot.command()
 async def server(ctx):
@@ -870,6 +895,143 @@ async def ban(ctx, member: discord.Member, reason=None):
       await ctx.send("`Missing Permissions`")
 
 @bot.event
+async def on_member_join(member):
+  docs = db.collection(u'UserData').document(str(member.id))
+  if docs.get().exists:
+    pass
+  else:
+    if member.bot:
+      pass
+    else:
+      dt_string = datetime.now().strftime("%d/%m/%Y")
+      docs.set({
+        u'ID': str(member.id),
+        u'Pro': u'Base',
+        u'Boosts': 0,
+        u'Level': 1,
+        u'Cash': 100,
+        u'Joined': dt_string,
+      })
+
+@bot.command()
+async def coupon(ctx,actype = 'AccPro',count = 0):
+  tokennn = str(uuid.uuid4())
+  docs = db.collection(u'Coupon').document(str(tokennn))
+  dt_string = datetime.now().strftime("%d/%m/%Y")
+  docs.set({
+        u'Token': str(tokennn),
+        u'Type' : actype,
+        u'Status' : 'Active',
+        u'Boosts' : count,
+        u'Created': dt_string,
+      })
+  await ctx.send(f"`Created {tokennn}`")
+
+
+@bot.command()
+async def claim(ctx,code:str):
+  docs = db.collection(u'Coupon').document(str(code))
+  userdocs = db.collection(u'UserData').document(str(ctx.author.id))
+  guilddocs = db.collection(u'Servers').document(str(ctx.guild.id))
+  dt_string = datetime.now().strftime("%d/%m/%Y")
+  if docs.get().exists:
+    claimed = u'{}'.format(docs.get({u'Status'}).to_dict()['Status'])
+    if str(claimed) == "Active":
+      gvtype = u'{}'.format(docs.get({u'Type'}).to_dict()['Type'])
+      if str(gvtype) == "AccPro":
+        userstatus = u'{}'.format(userdocs.get({u'Pro'}).to_dict()['Pro'])
+        if str(userstatus) == "Pro":
+          await ctx.send("You already have Pro")
+        else:
+          docs.set({
+          u'Status': f"Claimed {dt_string}",
+          },merge=True)
+          userdocs.set({
+          u'Pro': f"Pro",
+          },merge=True)
+          await ctx.send("`Claimed`")
+
+      if str(gvtype) == "GuildPro":
+        userstatus = u'{}'.format(guilddocs.get({u'Pro'}).to_dict()['Pro'])
+        if str(userstatus) == "Pro":
+          await ctx.send(f"{ctx.guild.name} is already Pro")
+        else:
+          docs.set({
+          u'Status': f"Claimed {dt_string}",
+          },merge=True)
+          guilddocs.set({
+          u'Pro': f"Pro",
+          },merge=True)
+          await ctx.send("`Claimed`")
+      if str(gvtype) == "Boost":
+          currentboosts = u'{}'.format(userdocs.get({u'Boosts'}).to_dict()['Boosts'])
+          giftedboosts = u'{}'.format(docs.get({u'Boosts'}).to_dict()['Boosts'])
+          newboosts = int(currentboosts)+int(giftedboosts)
+          docs.set({
+          u'Status': f"Claimed {dt_string}",
+          },merge=True)
+          userdocs.set({
+          u'Boosts': newboosts,
+          },merge=True)
+          await ctx.send("`Claimed`")
+
+    else:
+      await ctx.send("`Already Used`")
+    
+
+        
+
+
+@bot.command()
+async def About(ctx):
+  embed = discord.Embed(title=f"{ctx.author.name}", description="iQ is the ultimate moderation bot! It has everything relating to server management. ", color=random.choice(colors))
+  await asyncio.sleep(1)
+  embed.set_thumbnail(url="https://i.imgur.com/f6XzjPE.png")
+  embed.set_footer(text="iQ Bot by Aevus : Q Help")
+  doc_ref = db.collection(u'UserData').document(f'{ctx.author.id}')
+  if doc_ref.get().exists:
+    embed.add_field(name="Name",
+                        value=f'{ctx.author.name}', inline=False)
+    cash = u'{}'.format(doc_ref.get({u'Cash'}).to_dict()['Cash'])
+    embed.add_field(name="Cash",
+                        value=f'{str(cash)}', inline=False)
+    level = u'{}'.format(doc_ref.get({u'Level'}).to_dict()['Level'])
+    embed.add_field(name="Level",
+                        value=f'{str(level)}', inline=False)
+    boost = u'{}'.format(doc_ref.get({u'Boosts'}).to_dict()['Boosts'])
+    embed.add_field(name="Level",
+                        value=f'{str(boost)}', inline=False)
+    pro = u'{}'.format(doc_ref.get({u'Pro'}).to_dict()['Pro'])
+    embed.add_field(name="Account Type",
+                        value=f'{str(pro)}', inline=False)
+    joined = u'{}'.format(doc_ref.get({u'Joined'}).to_dict()['Joined'])
+    embed.add_field(name="Joined",
+                        value=f'{str(joined)}', inline=False)    
+  await ctx.send(embed=embed)
+
+
+
+@bot.command()
+async def setupacount(ctx):
+  for member in ctx.guild.members:
+    docs = db.collection(u'UserData').document(str(member.id))
+    if docs.get().exists:
+      pass
+    else:
+      if member.bot:
+        pass
+      else:
+        dt_string = datetime.now().strftime("%d/%m/%Y")
+        docs.set({
+          u'ID': str(member.id),
+          u'Pro': u'Base',
+          u'Boosts': 0,
+          u'Level': 1,
+          u'Cash': 100,
+          u'Joined': dt_string,
+        })   
+         
+@bot.event
 async def on_message(message):
   try:
     role = discord.utils.find(lambda r: r.name == 'Muted', message.guild.roles)
@@ -1013,6 +1175,7 @@ async def Feedback(ctx, *, message: str):
 @bot.command()
 async def Host(ctx):  
   done = time.time()
+  true_member_count = len([m for m in ctx.guild.members if not m.bot])
   elapsed = done - start
   embed = discord.Embed(title="ACTIVE", description= "Specs",color=random.choice(colors))
   ping = round(bot.latency * 1000)
@@ -1030,7 +1193,9 @@ async def Host(ctx):
   embed.add_field(name="Ping",
                     value=str(ping), inline=False)
   embed.add_field(name="Uptime",
-                    value=str(round(elapsed,2)), inline=False)     
+                    value=str(round(elapsed,2)), inline=False)
+  embed.add_field(name="Servers In",
+                    value=str(len(bot.guilds)), inline=False)     
   try:
     doc_ref = db.collection(u'ServerData').document(u'Settings')
     serverstatus = u'{}'.format(doc_ref.get({u'Status'}).to_dict()['Status'])
@@ -1049,7 +1214,28 @@ async def Host(ctx):
                         value=str(version), inline=False)                    
   except:
     pass
+  embed.add_field(name="Guild Members",
+                    value=str(true_member_count), inline=False)    
   embed.set_footer(text="iQ Bot by Aevus : Q Help")
+  await ctx.send(embed=embed)
+
+@bot.command()
+async def Members(ctx):
+  embed = discord.Embed(title="Members", description= "iQ is the ultimate moderation bot! It has everything relating to server management. ",color=random.choice(colors))
+  embed.set_thumbnail(url="https://i.imgur.com/f6XzjPE.png")
+  embed.set_footer(text="iQ Bot by Aevus : Q Help")
+  doc_ref = db.collection(u'Servers').document(f'{ctx.guild.id}')
+  modrole = u'{}'.format(doc_ref.get({u'ModRole'}).to_dict()['ModRole'])  
+  for member in ctx.guild.members:
+        if member.bot:
+          embed.add_field(name=f"{str(member.name)}",
+                    value="Bot", inline=False)              
+        else:
+            role = discord.utils.find(lambda r: r.name == 'Muted', ctx.guild.roles)
+            if role in member.roles:
+              embed.add_field(name=f"{str(member.name)}",value=f"Muted", inline=False)
+            else:
+              embed.add_field(name=f"{str(member.name)}",value='User',inline=False)
   await ctx.send(embed=embed)
 
 @bot.command()
@@ -1172,6 +1358,10 @@ async def Guild(ctx):
     embed.add_field(name="Credits",
                         value=f'{str(credits)}', inline=False)
     modchannel = u'{}'.format(doc_ref.get({u'ModerationChannel'}).to_dict()['ModerationChannel'])
+    
+    pro = u'{}'.format(doc_ref.get({u'Pro'}).to_dict()['Pro'])
+    embed.add_field(name="Service",
+                        value=f'{str(pro)}', inline=False)
     embed.add_field(name="Mod Channel",
                         value=f'{str(modchannel)}', inline=False)
     modrole = u'{}'.format(doc_ref.get({u'ModRole'}).to_dict()['ModRole'])
@@ -1182,7 +1372,7 @@ async def Guild(ctx):
                         value=f'{str(pg)}', inline=False)    
   embed.add_field(name="Host Information", value="`Q Host`  ", inline=False)
   await ctx.send(embed=embed)
-
+  
 
 @bot.event
 async def on_command_error(ctx, error):
