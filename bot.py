@@ -570,6 +570,7 @@ async def on_message(message):
     pass
   await bot.process_commands(message)
 '''
+
 @bot.event
 async def on_guild_join(guild):
   doc_ref = db.collection(u'Servers').document(str(guild.id))
@@ -639,7 +640,7 @@ async def Get(ctx,choice='none',field='none'):
     await ctx.send(f'`{ctx.message.channel.name}: {ctx.message.channel.id}`')
 
 @bot.command()
-async def Set(ctx,choice='none',field='none'):  
+async def Set(ctx,choice='none', *,field='none'):  
   if choice == 'none':
     await ctx.send('```You need to specify what to set```')
   if choice == 'ModRole':
@@ -650,6 +651,20 @@ async def Set(ctx,choice='none',field='none'):
     role = discord.utils.get(ctx.guild.roles, name=f"{field}")
     await ctx.author.add_roles(role)
     await ctx.send("`Mod Role Successfully Set `")
+  if choice == 'AutoRole':
+    doc_ref = db.collection(u'Servers').document(str(ctx.message.guild.id))
+    doc_ref.set({
+      u'AutoRole': str(field),
+    },merge=True)
+    role = discord.utils.get(ctx.guild.roles, name=f"{field}")
+    await ctx.author.add_roles(role)
+    await ctx.send("`Auto Role Successfully Set `")
+  if choice == 'WelcomeMessage':
+    doc_ref = db.collection(u'Servers').document(str(ctx.message.guild.id))
+    doc_ref.set({
+      u'WelcomeMessage': str(field),
+    },merge=True)
+    await ctx.send("`Welcome Message Successfully Set `")
   if choice == 'ModLog':
     doc_ref = db.collection(u'Servers').document(str(ctx.message.guild.id))
     doc_ref.set({
@@ -1161,7 +1176,7 @@ async def on_message(message):
         status = f.read()
         if status == "1":
           await bot.process_commands(message)
-        elif message.content.startswith('Q Panel'):
+        elif message.content.startswith('Q Admin'):
           await bot.process_commands(message)
         else:
           await message.channel.send("`IQ is currently offline, please try again later!`")
@@ -1171,7 +1186,7 @@ async def on_message(message):
       status = f.read()
       if status == "1":
         await bot.process_commands(message)
-      elif message.content.startswith('Q Panel'):
+      elif message.content.startswith('Q Admin'):
         await bot.process_commands(message)
       else:
         await message.channel.send("`IQ is currently offline, please try again later!`")
@@ -1251,7 +1266,7 @@ async def Invite(ctx, member=None):
     await channel.send(invitelink)
 
 @bot.command()
-async def Panel(ctx,tokenn: str, cmnd: str):
+async def Admin(ctx,tokenn: str, cmnd: str):
   if tokenn==os.environ.get("TOKENN"):
     if cmnd == 'Disable':
       text_file = open("status.txt", "w")
@@ -1485,9 +1500,49 @@ async def Guild(ctx):
     pg = u'{}'.format(doc_ref.get({u'PG'}).to_dict()['PG'])
     embed.add_field(name="PG",
                         value=f'{str(pg)}', inline=False)    
-  embed.add_field(name="Host Information", value="`Q Host`  ", inline=False)
   await ctx.send(embed=embed)
+
+@bot.command()
+async def Panel(ctx):
+  embed = discord.Embed(title=f"{ctx.guild.name}", description="iQ is the ultimate moderation bot! It has everything relating to server management. ", color=random.choice(colors))
+  embed.set_footer(text="iQ Bot by Aevus : Q Help")
+  doc_ref = db.collection(u'Servers').document(f'{ctx.guild.id}')
+  if doc_ref.get().exists:
+    autorole = u'{}'.format(doc_ref.get({u'AutoRole'}).to_dict()['AutoRole'])
+    if str(autorole) == "None":
+      embed.add_field(name="Auto Role",value=f'```Auto Role not set. You can do so by typing: Q set AutoRole (rolename)```', inline=True)
+    else:
+      embed.add_field(name="Auto Role",value=f'```New users will be given the {str(autorole)} upon joining.```', inline=True)
+
+    modlog = u'{}'.format(doc_ref.get({u'ModerationChannel'}).to_dict()['ModerationChannel'])
+    if str(modlog) == "None":
+      embed.add_field(name="Mod Log",value=f'```Mod Log not set. You can do so by typing: Q set ModLog (Channel ID)```', inline=True)
+    else:
+      embed.add_field(name="Mod Log",value=f'```All moderation commands will by logged in <#{str(modlog)}>```', inline=True)
+
+    modrole = u'{}'.format(doc_ref.get({u'ModRole'}).to_dict()['ModRole'])
+    if str(modrole) == "None":
+      embed.add_field(name="Mod Role",value=f'```Mod Role not set. You can do so by typing: Q set ModRole (role name)```', inline=True)
+    else:
+      embed.add_field(name="Mod Role",value=f'```The {str(modrole)} role will be reqired to perform moderation commands.```', inline=True)
+
+    welcomemessage = u'{}'.format(doc_ref.get({u'WelcomeMessage'}).to_dict()['WelcomeMessage'])
+    if str(welcomemessage) == "None":
+      embed.add_field(name="Welcome Message",value=f'```Welcome Message not set. You can do so by typing: Q set WelcomeMessage (message)```', inline=True)
+    else:
+      embed.add_field(name="Welcome Message",value=f'```{str(welcomemessage)}```', inline=True)
+
+    pro = u'{}'.format(doc_ref.get({u'Pro'}).to_dict()['Pro'])
+    booster = u'{}'.format(doc_ref.get({u'Booster'}).to_dict()['Booster'])
+    if str(pro) == "Base":
+      embed.add_field(name="iQ Pro",value=f'```This server is missing many fun commands. Boost this server today!```', inline=True)
+    else:
+      embed.add_field(name="iQ Pro",value=f'```This server is boosted by <@{str(booster)}>```', inline=True)
+
   
+
+  await ctx.send(embed=embed)
+
 
 @bot.event
 async def on_command_error(ctx, error):
