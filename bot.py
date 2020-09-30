@@ -716,7 +716,7 @@ async def ModLog(ctx, field='None',modname = "iQ-Log"):
       await ctx.send("Moderation Channel not set! You can set it by typing `Q ModLog Create (optional name)`")
     else:
       embed = discord.Embed(
-        title="ModRole",
+        title="ModLog",
         description=f'Moderation commands will be logged in <#{str(moderationChannel)}>',
         color=random.choice(colors))
       await ctx.send(embed=embed)
@@ -725,7 +725,46 @@ async def ModLog(ctx, field='None',modname = "iQ-Log"):
             u'ModerationChannel': str(modname),
         }, merge=True)
         await ctx.send('`Mod Log Successfully Set`')
-        
+
+
+@bot.command()
+async def AutoRole(ctx, field='None',rolename = "Guest"):
+  if field == "None":
+    doc_ref = db.collection(u'Servers').document(str(ctx.message.guild.id))
+    arole = u'{}'.format(doc_ref.get({u'AutoRole'}).to_dict()['AutoRole']) 
+    if arole == "None":
+      await ctx.send("Auto Role not set! You can set it by typing `Q AutoRole Create (role name)`")
+    else:
+      embed = discord.Embed(
+        title="AutoRole",
+        description=f'All new member will be given the {str(arole)} upon joining.',
+        color=random.choice(colors))
+      await ctx.send(embed=embed)
+  elif field == "Create" or "Create":
+        doc_ref.set({
+            u'AutoRole': str(rolename),
+        }, merge=True)
+        await ctx.send('`AutoRole Successfully Set`')        
+
+@bot.command()
+async def WelcomeMessage(ctx, field='None',wmessage = "None"):
+  if field == "None":
+    doc_ref = db.collection(u'Servers').document(str(ctx.message.guild.id))
+    welcomeMessage = u'{}'.format(doc_ref.get({u'WelcomeMessage'}).to_dict()['WelcomeMessage']) 
+    if welcomeMessage == "None":
+      await ctx.send("Welcome Message not set! You can set it by typing `Q WelcomeMessage Create (message)`")
+    else:
+      embed = discord.Embed(
+        title="Welcome Message",
+        description=f'Welcome Message: {str(welcomeMessage)}',
+        color=random.choice(colors))
+      await ctx.send(embed=embed)
+  elif field == "Create" or "Create":
+        doc_ref.set({
+            u'WelcomeMessage': str(wmessage),
+        }, merge=True)
+        await ctx.send('`Welcome Message Successfully Set`')        
+
 
 @bot.command()
 async def Set(ctx, choice='none', *, field='none'):
