@@ -26,7 +26,6 @@ import math
 import uuid
 from async_timeout import timeout
 
-
 cred = credentials.Certificate('FrBase.json')
 firebase_admin.initialize_app(cred)
 
@@ -43,8 +42,9 @@ songs = asyncio.Queue()
 #uptime
 start = time.time()
 
-bot = commands.Bot('Q ', description='Ultimate Moderation Bot',case_insensitive=True )
-colors=[0xAD303F,0xBE3B4A,0x9D2533,0xD83144]
+bot = commands.Bot(
+    'Q ', description='Ultimate Moderation Bot', case_insensitive=True)
+colors = [0xAD303F, 0xBE3B4A, 0x9D2533, 0xD83144]
 showlist = ['Q Help']
 bot.remove_command('help')
 
@@ -78,13 +78,20 @@ class YTDLSource(discord.PCMVolumeTransformer):
     }
 
     FFMPEG_OPTIONS = {
-        'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
-        'options': '-vn',
+        'before_options':
+        '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
+        'options':
+        '-vn',
     }
 
     ytdl = youtube_dl.YoutubeDL(YTDL_OPTIONS)
 
-    def __init__(self, ctx: commands.Context, source: discord.FFmpegPCMAudio, *, data: dict, volume: float = 0.5):
+    def __init__(self,
+                 ctx: commands.Context,
+                 source: discord.FFmpegPCMAudio,
+                 *,
+                 data: dict,
+                 volume: float = 0.5):
         super().__init__(source, volume)
 
         self.requester = ctx.author
@@ -110,14 +117,20 @@ class YTDLSource(discord.PCMVolumeTransformer):
         return '{0.title} by {0.uploader}'.format(self)
 
     @classmethod
-    async def create_source(cls, ctx: commands.Context, search: str, *, loop: asyncio.BaseEventLoop = None):
+    async def create_source(cls,
+                            ctx: commands.Context,
+                            search: str,
+                            *,
+                            loop: asyncio.BaseEventLoop = None):
         loop = loop or asyncio.get_event_loop()
 
-        partial = functools.partial(cls.ytdl.extract_info, search, download=False, process=False)
+        partial = functools.partial(
+            cls.ytdl.extract_info, search, download=False, process=False)
         data = await loop.run_in_executor(None, partial)
 
         if data is None:
-            raise YTDLError('Couldn\'t find anything that matches `{}`'.format(search))
+            raise YTDLError(
+                'Couldn\'t find anything that matches `{}`'.format(search))
 
         if 'entries' not in data:
             process_info = data
@@ -129,10 +142,12 @@ class YTDLSource(discord.PCMVolumeTransformer):
                     break
 
             if process_info is None:
-                raise YTDLError('Couldn\'t find anything that matches `{}`'.format(search))
+                raise YTDLError(
+                    'Couldn\'t find anything that matches `{}`'.format(search))
 
         webpage_url = process_info['webpage_url']
-        partial = functools.partial(cls.ytdl.extract_info, webpage_url, download=False)
+        partial = functools.partial(
+            cls.ytdl.extract_info, webpage_url, download=False)
         processed_info = await loop.run_in_executor(None, partial)
 
         if processed_info is None:
@@ -146,9 +161,13 @@ class YTDLSource(discord.PCMVolumeTransformer):
                 try:
                     info = processed_info['entries'].pop(0)
                 except IndexError:
-                    raise YTDLError('Couldn\'t retrieve any matches for `{}`'.format(webpage_url))
+                    raise YTDLError('Couldn\'t retrieve any matches for `{}`'.
+                                    format(webpage_url))
 
-        return cls(ctx, discord.FFmpegPCMAudio(info['url'], **cls.FFMPEG_OPTIONS), data=info)
+        return cls(
+            ctx,
+            discord.FFmpegPCMAudio(info['url'], **cls.FFMPEG_OPTIONS),
+            data=info)
 
     @staticmethod
     def parse_duration(duration: int):
@@ -177,11 +196,12 @@ class Song:
         self.requester = source.requester
 
     def create_embed(self):
-        embed = (discord.Embed(title='Now Playing',
-                               description='```\n{0.source.title}\n```'.format(self),
-                               color=random.choice(colors))
-                 .add_field(name='Duration', value=self.source.duration)
-                 .add_field(name='Requested by', value=self.requester.name))
+        embed = (discord.Embed(
+            title='Now Playing',
+            description='```\n{0.source.title}\n```'.format(self),
+            color=random.choice(colors)).add_field(
+                name='Duration', value=self.source.duration).add_field(
+                    name='Requested by', value=self.requester.name))
 
         return embed
 
@@ -189,7 +209,9 @@ class Song:
 class SongQueue(asyncio.Queue):
     def __getitem__(self, item):
         if isinstance(item, slice):
-            return list(itertools.islice(self._queue, item.start, item.stop, item.step))
+            return list(
+                itertools.islice(self._queue, item.start, item.stop,
+                                 item.step))
         else:
             return self._queue[item]
 
@@ -266,7 +288,8 @@ class VoiceState:
 
             self.current.source.volume = self._volume
             self.voice.play(self.current.source, after=self.play_next_song)
-            await self.current.source.channel.send(embed=self.current.create_embed())
+            await self.current.source.channel.send(
+                embed=self.current.create_embed())
 
             await self.next.wait()
 
@@ -309,14 +332,16 @@ class Music(commands.Cog):
 
     def cog_check(self, ctx: commands.Context):
         if not ctx.guild:
-            raise commands.NoPrivateMessage('This command can\'t be used in DM channels.')
+            raise commands.NoPrivateMessage(
+                'This command can\'t be used in DM channels.')
 
         return True
 
     async def cog_before_invoke(self, ctx: commands.Context):
         ctx.voice_state = self.get_voice_state(ctx)
 
-    async def cog_command_error(self, ctx: commands.Context, error: commands.CommandError):
+    async def cog_command_error(self, ctx: commands.Context,
+                                error: commands.CommandError):
         await ctx.send('An error occurred: {}'.format(str(error)))
 
     @commands.command(name='join', invoke_without_subcommand=True)
@@ -332,14 +357,19 @@ class Music(commands.Cog):
 
     @commands.command(name='ForceJoin')
     @commands.has_permissions(manage_guild=True)
-    async def _summon(self, ctx: commands.Context, *, channel: discord.VoiceChannel = None):
+    async def _summon(self,
+                      ctx: commands.Context,
+                      *,
+                      channel: discord.VoiceChannel = None):
         """Summons the bot to a voice channel.
 
         If no channel was specified, it joins your channel.
         """
 
         if not channel and not ctx.author.voice:
-            raise VoiceError('You are neither connected to a voice channel nor specified a channel to join.')
+            raise VoiceError(
+                'You are neither connected to a voice channel nor specified a channel to join.'
+            )
 
         destination = channel or ctx.author.voice.channel
         if ctx.voice_state.voice:
@@ -426,7 +456,8 @@ class Music(commands.Cog):
                 await ctx.message.add_reaction('⏭')
                 ctx.voice_state.skip()
             else:
-                await ctx.send('`Skip vote added, currently at {}/3`'.format(total_votes))
+                await ctx.send(
+                    '`Skip vote added, currently at {}/3`'.format(total_votes))
 
         else:
             await ctx.send('You have already voted to skip this song.')
@@ -448,11 +479,16 @@ class Music(commands.Cog):
         end = start + items_per_page
 
         queue = ''
-        for i, song in enumerate(ctx.voice_state.songs[start:end], start=start):
-            queue += '`{0}.` [{1.source.title}]({1.source.url})\n'.format(i + 1, song)
+        for i, song in enumerate(
+                ctx.voice_state.songs[start:end], start=start):
+            queue += '`{0}.` [{1.source.title}]({1.source.url})\n'.format(
+                i + 1, song)
 
-        embed = (discord.Embed(color=random.choice(colors),description='{} tracks:\n\n{}'.format(len(ctx.voice_state.songs), queue))
-                 .set_footer(text='Viewing page {}/{}'.format(page, pages)))
+        embed = (discord.Embed(
+            color=random.choice(colors),
+            description='{} tracks:\n\n{}'.format(
+                len(ctx.voice_state.songs), queue)).set_footer(
+                    text='Viewing page {}/{}'.format(page, pages)))
         await ctx.send(embed=embed)
 
     @commands.command(name='shuffle')
@@ -505,38 +541,45 @@ class Music(commands.Cog):
 
         async with ctx.typing():
             try:
-                source = await YTDLSource.create_source(ctx, search, loop=self.bot.loop)
+                source = await YTDLSource.create_source(
+                    ctx, search, loop=self.bot.loop)
             except YTDLError as e:
-                await ctx.send('An error occurred while processing this request: {}'.format(str(e)))
+                await ctx.send(
+                    'An error occurred while processing this request: {}'.
+                    format(str(e)))
             else:
                 song = Song(source)
 
                 await ctx.voice_state.songs.put(song)
                 embed = embed = discord.Embed(
-                description='```Added {} to queue```'.format(str(source)),
-                color=random.choice(colors))
+                    description='```Added {} to queue```'.format(str(source)),
+                    color=random.choice(colors))
                 await ctx.send(embed=embed)
 
     @_join.before_invoke
     @_play.before_invoke
     async def ensure_voice_state(self, ctx: commands.Context):
         if not ctx.author.voice or not ctx.author.voice.channel:
-            raise commands.CommandError('`You are not connected to any voice channel.`')
+            raise commands.CommandError(
+                '`You are not connected to any voice channel.`')
 
         if ctx.voice_client:
             if ctx.voice_client.channel != ctx.author.voice.channel:
-                raise commands.CommandError('`Bot is already in a voice channel.`')
-
+                raise commands.CommandError(
+                    '`Bot is already in a voice channel.`')
 
 
 @bot.event
 async def on_ready():
-    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name=random.choice(showlist)))
+    await bot.change_presence(
+        activity=discord.Activity(
+            type=discord.ActivityType.listening, name=random.choice(showlist)))
     print(bot.user.id)
     #for guild in bot.guilds:
     #  if guild.name == '743495325968498689':
     #    break
     start = time.time()
+
 
 '''
 @bot.event
@@ -571,106 +614,151 @@ async def on_message(message):
   await bot.process_commands(message)
 '''
 
+
 @bot.event
 async def on_guild_join(guild):
-  doc_ref = db.collection(u'Servers').document(str(guild.id))
-  if doc_ref.get().exists:
-    for channel in guild.text_channels:
-        if channel.permissions_for(guild.me).send_messages:
-            await channel.send(':)')
-        break
-  else:
-    dt_string = datetime.now().strftime("%d/%m/%Y")
-    doc_ref.set({
-      u'ID': str(guild.id),
-      u'PG': u'No',
-      u'Pro': u'Base',
-      u'Booster': u'None',
-      u'Credits': 10,
-      u'ModRole': 'None',
-      u'WelcomeMessage': 'None',
-      u'ModerationChannel': 'None',
-      u'AutoRole': 'None',
-      u'Warns': 3,
-      u'Joined': dt_string,
-    })
-    try:
-      await guild.create_role(name="Muted")
-    except:
-      pass  
-
+    doc_ref = db.collection(u'Servers').document(str(guild.id))
+    if doc_ref.get().exists:
+        for channel in guild.text_channels:
+            if channel.permissions_for(guild.me).send_messages:
+                await channel.send(':)')
+            break
+    else:
+        dt_string = datetime.now().strftime("%d/%m/%Y")
+        doc_ref.set({
+            u'ID': str(guild.id),
+            u'PG': u'No',
+            u'Pro': u'Base',
+            u'Booster': u'None',
+            u'Credits': 10,
+            u'ModRole': 'None',
+            u'WelcomeMessage': 'None',
+            u'ModerationChannel': 'None',
+            u'AutoRole': 'None',
+            u'Warns': 3,
+            u'Joined': dt_string,
+        })
+        try:
+            await guild.create_role(name="Muted")
+        except:
+            pass
 
 @bot.command()
 async def ping(ctx):
-    ping = round(bot.latency*1000)
+    ping = round(bot.latency * 1000)
     await ctx.send(f"{ctx.author.mention} The ping of this bot is {ping} ms")
 
+@bot.command()
+async def Add(ctx, choice='none', field='Mod'):
+    if choice == 'none':
+        await ctx.send('```You need to specify what to add```')
+    if choice == 'ModLog':
+        guild = ctx.message.guild
+        overwrites = {
+            guild.default_role:
+            discord.PermissionOverwrite(send_messages=False),
+            guild.me: discord.PermissionOverwrite(send_messages=True)
+        }
+        await guild.create_text_channel('iq-log', overwrites=overwrites)
+        await ctx.send("`Mod Log Successfully Created `")
+    if choice == 'Channel':
+        guild = ctx.message.guild
+        await guild.create_text_channel(f'{field}')
+        await ctx.send("`Channel Successfully Created `")
+    if choice == 'ModRole':
+        doc_ref = db.collection(u'Servers').document(str(ctx.message.guild.id))
+        await ctx.guild.create_role(
+            name=f"{field}", colour=discord.Colour(0x88EBFF))
+        doc_ref.set({
+            u'ModRole': str(field),
+        }, merge=True)
+        role = discord.utils.get(ctx.guild.roles, name=f"{field}")
+        await ctx.author.add_roles(role)
+        await ctx.send("`Mod Role Successfully Created `")
 
 @bot.command()
-async def Add(ctx,choice='none',field='none'):  
-  if choice == 'none':
-    await ctx.send('```You need to specify what to add```')
-  if choice == 'ModLog':
-    guild = ctx.message.guild
-    overwrites = {
-          guild.default_role: discord.PermissionOverwrite(send_messages=False),
-          guild.me: discord.PermissionOverwrite(send_messages=True)
-    }
-    await guild.create_text_channel('iq-log', overwrites=overwrites)
-    await ctx.send("`Mod Log Successfully Created `")
-  if choice == 'Server':
-    guild = ctx.message.guild
-    await guild.create_text_channel(f'{field}')
-    await ctx.send("`Server Successfully Created `")
-  if choice == 'ModRole':
-    doc_ref = db.collection(u'Servers').document(str(ctx.message.guild.id))
-    await ctx.guild.create_role(name=f"{field}", colour=discord.Colour(0x88EBFF))
-    doc_ref.set({
-      u'ModRole': str(field),
-    },merge=True)
-    role = discord.utils.get(ctx.guild.roles, name=f"{field}")
-    await ctx.author.add_roles(role)
-    await ctx.send("`Mod Role Successfully Created `")
+async def Get(ctx, choice='none', field='none'):
+    if choice == 'none':
+        await ctx.send('```You need to specify what to Get```')
+    if choice == 'Channel':
+        await ctx.send(
+            f'`{ctx.message.channel.name}: {ctx.message.channel.id}`')
+
 
 @bot.command()
-async def Get(ctx,choice='none',field='none'):  
-  if choice == 'none':
-    await ctx.send('```You need to specify what to Get```')
-  if choice == 'Channel':
-    await ctx.send(f'`{ctx.message.channel.name}: {ctx.message.channel.id}`')
+async def ModRole(ctx, field='None',rolename = "iQ-Mod"):
+  if field == "None":
+    doc_ref = db.collection(u'Servers').document(str(ctx.message.guild.id))
+    moderationRole = u'{}'.format(doc_ref.get({u'ModRole'}).to_dict()['ModRole']) 
+    if moderationRole == "None":
+      await ctx.send("ModRole not set! You can set it by typing `Q Modrole Create`")
+    else:
+      embed = discord.Embed(
+        title="ModRole",
+        description=f'The {str(moderationRole)} role is reqired for moderation commands',
+        color=random.choice(colors))
+      await ctx.send(embed=embed)
+  elif field == "Create" or "Create":
+        doc_ref = db.collection(u'Servers').document(str(ctx.message.guild.id))
+        doc_ref.set({
+            u'ModRole': str(rolename),
+        }, merge=True)
+        role = discord.utils.get(ctx.guild.roles, name=f"{rolename}")
+        await ctx.author.add_roles(role)
+        await ctx.send("`Mod Role Successfully Set `")
 
 @bot.command()
-async def Set(ctx,choice='none', *,field='none'):  
-  if choice == 'none':
-    await ctx.send('```You need to specify what to set```')
-  if choice == 'ModRole':
+async def ModLog(ctx, field='None',modname = "iQ-Log"):
+  if field == "None":
     doc_ref = db.collection(u'Servers').document(str(ctx.message.guild.id))
-    doc_ref.set({
-      u'ModRole': str(field),
-    },merge=True)
-    role = discord.utils.get(ctx.guild.roles, name=f"{field}")
-    await ctx.author.add_roles(role)
-    await ctx.send("`Mod Role Successfully Set `")
-  if choice == 'AutoRole':
-    doc_ref = db.collection(u'Servers').document(str(ctx.message.guild.id))
-    doc_ref.set({
-      u'AutoRole': str(field),
-    },merge=True)
-    role = discord.utils.get(ctx.guild.roles, name=f"{field}")
-    await ctx.author.add_roles(role)
-    await ctx.send("`Auto Role Successfully Set `")
-  if choice == 'WelcomeMessage':
-    doc_ref = db.collection(u'Servers').document(str(ctx.message.guild.id))
-    doc_ref.set({
-      u'WelcomeMessage': str(field),
-    },merge=True)
-    await ctx.send("`Welcome Message Successfully Set `")
-  if choice == 'ModLog':
-    doc_ref = db.collection(u'Servers').document(str(ctx.message.guild.id))
-    doc_ref.set({
-      u'ModerationChannel': str(field),
-    },merge=True)
-    await ctx.send('`Mod Log Successfully Set`')
+    moderationChannel = u'{}'.format(doc_ref.get({u'ModerationChannel'}).to_dict()['ModerationChannel']) 
+    if moderationChannel == "None":
+      await ctx.send("Moderation Channel not set! You can set it by typing `Q ModLog Create (optional name)`")
+    else:
+      embed = discord.Embed(
+        title="ModRole",
+        description=f'Moderation commands will be logged in <#{str(moderationChannel)}>',
+        color=random.choice(colors))
+      await ctx.send(embed=embed)
+  elif field == "Create" or "Create":
+        doc_ref.set({
+            u'ModerationChannel': str(modname),
+        }, merge=True)
+        await ctx.send('`Mod Log Successfully Set`')
+        
+
+@bot.command()
+async def Set(ctx, choice='none', *, field='none'):
+    if choice == 'none':
+        await ctx.send('```You need to specify what to set```')
+    if choice == 'ModRole':
+        doc_ref = db.collection(u'Servers').document(str(ctx.message.guild.id))
+        doc_ref.set({
+            u'ModRole': str(field),
+        }, merge=True)
+        role = discord.utils.get(ctx.guild.roles, name=f"{field}")
+        await ctx.author.add_roles(role)
+        await ctx.send("`Mod Role Successfully Set `")
+    if choice == 'AutoRole':
+        doc_ref = db.collection(u'Servers').document(str(ctx.message.guild.id))
+        doc_ref.set({
+            u'AutoRole': str(field),
+        }, merge=True)
+        role = discord.utils.get(ctx.guild.roles, name=f"{field}")
+        await ctx.author.add_roles(role)
+        await ctx.send("`Auto Role Successfully Set `")
+    if choice == 'WelcomeMessage':
+        doc_ref = db.collection(u'Servers').document(str(ctx.message.guild.id))
+        doc_ref.set({
+            u'WelcomeMessage': str(field),
+        }, merge=True)
+        await ctx.send("`Welcome Message Successfully Set `")
+    if choice == 'ModLog':
+        doc_ref = db.collection(u'Servers').document(str(ctx.message.guild.id))
+        doc_ref.set({
+            u'ModerationChannel': str(field),
+        }, merge=True)
+        await ctx.send('`Mod Log Successfully Set`')
 
 @bot.command()
 async def server(ctx):
@@ -678,729 +766,912 @@ async def server(ctx):
 
 @bot.command()
 async def clear(ctx, amount=5):
-  docs = db.collection(u'Servers').document(str(ctx.message.guild.id))
-  try:
-    moderationRole = u'{}'.format(docs.get({u'ModRole'}).to_dict()['ModRole'])
-  except:
-    moderationRole = 'None'
-  if str(moderationRole) == 'None':
-    amount = amount + 1
-    upperLimit = 59
-    if amount > upperLimit:
-        await ctx.send("`Clears cannot excced 59`")
+    docs = db.collection(u'Servers').document(str(ctx.message.guild.id))
+    try:
+        moderationRole = u'{}'.format(
+            docs.get({u'ModRole'}).to_dict()['ModRole'])
+    except:
+        moderationRole = 'None'
+    if str(moderationRole) == 'None':
+        amount = amount + 1
+        upperLimit = 59
+        if amount > upperLimit:
+            await ctx.send("`Clears cannot excced 59`")
 
-    if upperLimit >= amount:
-        await ctx.channel.purge(limit=amount)
-        doc_ref = db.collection(u'Servers').document(str(ctx.message.guild.id))
-        try:
-          if doc_ref.get().exists:
-            server = u'{}'.format(doc_ref.get({u'ModerationChannel'}).to_dict()['ModerationChannel'])
-            modchannel = bot.get_channel(int(server))
-            embed = discord.Embed(title=f"Cleared", description= f"{ctx.author.name} Deleted {amount} messages",color=random.choice(colors))
-            embed.set_footer(text="iQ Bot by Aevus : Q Help")
-            await modchannel.send(embed=embed)
-        except:
-          pass
-  else:
-    role = discord.utils.find(lambda r: r.name == f'{moderationRole}', ctx.guild.roles)
-    if role in ctx.author.roles:
-      amount = amount + 1
-      upperLimit = 59
-      if amount > upperLimit:
-          await ctx.send("`Clears cannot excced 59`")
-      if upperLimit >= amount:
-          await ctx.channel.purge(limit=amount)
-          doc_ref = db.collection(u'Servers').document(str(ctx.message.guild.id))
-          try:
-            if doc_ref.get().exists:
-              server = u'{}'.format(doc_ref.get({u'ModerationChannel'}).to_dict()['ModerationChannel'])
-              modchannel = bot.get_channel(int(server))
-              embed = discord.Embed(title=f"Cleared", description= f"{ctx.author.name} Deleted {amount} messages",color=random.choice(colors))
-              embed.set_footer(text="iQ Bot by Aevus : Q Help")
-              await modchannel.send(embed=embed)
-          except:
-            pass
+        if upperLimit >= amount:
+            await ctx.channel.purge(limit=amount)
+            doc_ref = db.collection(u'Servers').document(
+                str(ctx.message.guild.id))
+            try:
+                if doc_ref.get().exists:
+                    server = u'{}'.format(
+                        doc_ref.get({u'ModerationChannel'
+                                     }).to_dict()['ModerationChannel'])
+                    modchannel = bot.get_channel(int(server))
+                    embed = discord.Embed(
+                        title=f"Cleared",
+                        description=
+                        f"{ctx.author.name} Deleted {amount} messages",
+                        color=random.choice(colors))
+                    embed.set_footer(text="iQ Bot by Aevus : Q Help")
+                    await modchannel.send(embed=embed)
+            except:
+                pass
     else:
-      await ctx.send("`Missing Permissions`")
-
-
+        role = discord.utils.find(lambda r: r.name == f'{moderationRole}',
+                                  ctx.guild.roles)
+        if role in ctx.author.roles:
+            amount = amount + 1
+            upperLimit = 59
+            if amount > upperLimit:
+                await ctx.send("`Clears cannot excced 59`")
+            if upperLimit >= amount:
+                await ctx.channel.purge(limit=amount)
+                doc_ref = db.collection(u'Servers').document(
+                    str(ctx.message.guild.id))
+                try:
+                    if doc_ref.get().exists:
+                        server = u'{}'.format(
+                            doc_ref.get({u'ModerationChannel'
+                                         }).to_dict()['ModerationChannel'])
+                        modchannel = bot.get_channel(int(server))
+                        embed = discord.Embed(
+                            title=f"Cleared",
+                            description=
+                            f"{ctx.author.name} Deleted {amount} messages",
+                            color=random.choice(colors))
+                        embed.set_footer(text="iQ Bot by Aevus : Q Help")
+                        await modchannel.send(embed=embed)
+                except:
+                    pass
+        else:
+            await ctx.send("`Missing Permissions`")
 
 @bot.command(pass_context=True)
 async def warn(ctx, member: discord.Member, *, content):
-  docs = db.collection(u'Servers').document(str(ctx.message.guild.id))
-  try:
-    moderationRole = u'{}'.format(docs.get({u'ModRole'}).to_dict()['ModRole'])
-  except:
-    moderationRole = 'None'
-  if str(moderationRole) == 'None':
-    channel = await member.create_dm()
-    embed = discord.Embed(
-        title="Warning", description="You are receiving a warning for the following reason: " + content + " If you keep up this behavior it may result in a kick/ban.", color=random.choice(colors))
-    await asyncio.sleep(1)
-    embed.set_footer(text="iQ Bot by Aevus : Q Help")
-    await channel.send(embed=embed)
-    doc_ref = db.collection(u'Servers').document(str(ctx.message.guild.id))
+    docs = db.collection(u'Servers').document(str(ctx.message.guild.id))
     try:
-      if doc_ref.get().exists:
-        server = u'{}'.format(doc_ref.get({u'ModerationChannel'}).to_dict()['ModerationChannel'])
-        modchannel = bot.get_channel(int(server))
-        embed = discord.Embed(title=f"Warned", description= f"{member.mention} has been warned for {content} by {ctx.author.mention}",color=random.choice(colors))
-        embed.set_footer(text="iQ Bot by Aevus : Q Help")
-        await modchannel.send(embed=embed)
+        moderationRole = u'{}'.format(
+            docs.get({u'ModRole'}).to_dict()['ModRole'])
     except:
-      pass
-  else:
-    role = discord.utils.find(lambda r: r.name == f'{moderationRole}', ctx.guild.roles)
-    if role in ctx.author.roles:
-      channel = await member.create_dm()
-      embed = discord.Embed(
-          title="Warning", description="You are receiving a warning for the following reason: " + content + " If you keep up this behavior it may result in a kick/ban.", color=random.choice(colors))
-      await asyncio.sleep(1)
-      embed.set_footer(text="iQ Bot by Aevus : Q Help")
-      await channel.send(embed=embed)
-      doc_ref = db.collection(u'Servers').document(str(ctx.message.guild.id))
-      try:
-        if doc_ref.get().exists:
-          server = u'{}'.format(doc_ref.get({u'ModerationChannel'}).to_dict()['ModerationChannel'])
-          modchannel = bot.get_channel(int(server))
-          embed = discord.Embed(title=f"Warned", description= f"{member.mention} has been warned for {content} by {ctx.author.mention}",color=random.choice(colors))
-          embed.set_footer(text="iQ Bot by Aevus : Q Help")
-          await modchannel.send(embed=embed)
-      except:
-        pass
+        moderationRole = 'None'
+    if str(moderationRole) == 'None':
+        channel = await member.create_dm()
+        embed = discord.Embed(
+            title="Warning",
+            description="You are receiving a warning for the following reason: "
+            + content +
+            " If you keep up this behavior it may result in a kick/ban.",
+            color=random.choice(colors))
+        await asyncio.sleep(1)
+        embed.set_footer(text="iQ Bot by Aevus : Q Help")
+        await channel.send(embed=embed)
+        doc_ref = db.collection(u'Servers').document(str(ctx.message.guild.id))
+        try:
+            if doc_ref.get().exists:
+                server = u'{}'.format(
+                    doc_ref.get(
+                        {u'ModerationChannel'}).to_dict()['ModerationChannel'])
+                modchannel = bot.get_channel(int(server))
+                embed = discord.Embed(
+                    title=f"Warned",
+                    description=
+                    f"{member.mention} has been warned for {content} by {ctx.author.mention}",
+                    color=random.choice(colors))
+                embed.set_footer(text="iQ Bot by Aevus : Q Help")
+                await modchannel.send(embed=embed)
+        except:
+            pass
     else:
-      await ctx.send("`Missing Permissions`")
+        role = discord.utils.find(lambda r: r.name == f'{moderationRole}',
+                                  ctx.guild.roles)
+        if role in ctx.author.roles:
+            channel = await member.create_dm()
+            embed = discord.Embed(
+                title="Warning",
+                description=
+                "You are receiving a warning for the following reason: " +
+                content +
+                " If you keep up this behavior it may result in a kick/ban.",
+                color=random.choice(colors))
+            await asyncio.sleep(1)
+            embed.set_footer(text="iQ Bot by Aevus : Q Help")
+            await channel.send(embed=embed)
+            doc_ref = db.collection(u'Servers').document(
+                str(ctx.message.guild.id))
+            try:
+                if doc_ref.get().exists:
+                    server = u'{}'.format(
+                        doc_ref.get({u'ModerationChannel'
+                                     }).to_dict()['ModerationChannel'])
+                    modchannel = bot.get_channel(int(server))
+                    embed = discord.Embed(
+                        title=f"Warned",
+                        description=
+                        f"{member.mention} has been warned for {content} by {ctx.author.mention}",
+                        color=random.choice(colors))
+                    embed.set_footer(text="iQ Bot by Aevus : Q Help")
+                    await modchannel.send(embed=embed)
+            except:
+                pass
+        else:
+            await ctx.send("`Missing Permissions`")
 
-      
 @bot.command()
 async def kick(ctx, member: discord.Member, reason=None):
-  docs = db.collection(u'Servers').document(str(ctx.message.guild.id))
-  try:
-    moderationRole = u'{}'.format(docs.get({u'ModRole'}).to_dict()['ModRole'])
-  except:
-    moderationRole = 'None'
-  if str(moderationRole) == 'None':
-    if reason == None:
-        embed = discord.Embed(
-            title="Error", description='Please specify reason! !kick <User> <Reason>', color=random.choice(colors))
-        embed.set_footer(text="iQ Bot by Aevus : Q Help")
-        await ctx.send(embed=embed)
-    else:
-        try:
-          channel = await member.create_dm()
-          embed = discord.Embed(
-              title="Kicked", description="You are receiving a Kick for the following reason: " + reason , color=random.choice(colors))
-          embed.set_footer(text="iQ Bot by Aevus : Q Help")
-          await channel.send(embed=embed)
-        except:
-          pass
-        doc_ref = db.collection(u'Servers').document(str(ctx.message.guild.id))
-        try:
-          if doc_ref.get().exists:
-            server = u'{}'.format(doc_ref.get({u'ModerationChannel'}).to_dict()['ModerationChannel'])
-            modchannel = bot.get_channel(int(server))
-            embed = discord.Embed(title=f"Kicked", description= f"{member.mention} has been kicked for {reason} by {ctx.author.mention}",color=random.choice(colors))
+    docs = db.collection(u'Servers').document(str(ctx.message.guild.id))
+    try:
+        moderationRole = u'{}'.format(
+            docs.get({u'ModRole'}).to_dict()['ModRole'])
+    except:
+        moderationRole = 'None'
+    if str(moderationRole) == 'None':
+        if reason == None:
+            embed = discord.Embed(
+                title="Error",
+                description='Please specify reason! !kick <User> <Reason>',
+                color=random.choice(colors))
             embed.set_footer(text="iQ Bot by Aevus : Q Help")
-            await modchannel.send(embed=embed)
-          await member.kick()
-          embed = discord.Embed(
-              title="Removed", description=f"Successfully kicked {member} for {reason}", color=random.choice(colors))
-          embed.set_footer(text="iQ Bot by Aevus : Q Help")
-          await ctx.send(embed=embed)
-        except:
-          pass
-    
-  else:
-    role = discord.utils.find(lambda r: r.name == f'{moderationRole}', ctx.guild.roles)
-    if role in ctx.author.roles:
-      if reason == None:
-        embed = discord.Embed(
-            title="Error", description='Please specify reason! !kick <User> <Reason>', color=random.choice(colors))
-        embed.set_footer(text="iQ Bot by Aevus : Q Help")
-        await ctx.send(embed=embed)
-      else:
-        try:
-          channel = await member.create_dm()
-          embed = discord.Embed(
-              title="Kicked", description="You are receiving a Kick for the following reason: " + reason , color=random.choice(colors))
-          embed.set_footer(text="iQ Bot by Aevus : Q Help")
-          await channel.send(embed=embed)
-        except:
-          pass
-        doc_ref = db.collection(u'Servers').document(str(ctx.message.guild.id))
-        try:
-          if doc_ref.get().exists:
-            server = u'{}'.format(doc_ref.get({u'ModerationChannel'}).to_dict()['ModerationChannel'])
-            modchannel = bot.get_channel(int(server))
-            embed = discord.Embed(title=f"Kicked", description= f"{member.mention} has been kicked for {reason} by {ctx.author.mention}",color=random.choice(colors))
-            embed.set_footer(text="iQ Bot by Aevus : Q Help")
-            await modchannel.send(embed=embed)
-          await member.kick()
-          embed = discord.Embed(
-              title="Removed", description=f"Successfully kicked {member} for {reason}", color=random.choice(colors))
-          embed.set_footer(text="iQ Bot by Aevus : Q Help")
-          await ctx.send(embed=embed)
-        except:
-          pass
+            await ctx.send(embed=embed)
+        else:
+            try:
+                channel = await member.create_dm()
+                embed = discord.Embed(
+                    title="Kicked",
+                    description=
+                    "You are receiving a Kick for the following reason: " +
+                    reason,
+                    color=random.choice(colors))
+                embed.set_footer(text="iQ Bot by Aevus : Q Help")
+                await channel.send(embed=embed)
+            except:
+                pass
+            doc_ref = db.collection(u'Servers').document(
+                str(ctx.message.guild.id))
+            try:
+                if doc_ref.get().exists:
+                    server = u'{}'.format(
+                        doc_ref.get({u'ModerationChannel'
+                                     }).to_dict()['ModerationChannel'])
+                    modchannel = bot.get_channel(int(server))
+                    embed = discord.Embed(
+                        title=f"Kicked",
+                        description=
+                        f"{member.mention} has been kicked for {reason} by {ctx.author.mention}",
+                        color=random.choice(colors))
+                    embed.set_footer(text="iQ Bot by Aevus : Q Help")
+                    await modchannel.send(embed=embed)
+                await member.kick()
+                embed = discord.Embed(
+                    title="Removed",
+                    description=f"Successfully kicked {member} for {reason}",
+                    color=random.choice(colors))
+                embed.set_footer(text="iQ Bot by Aevus : Q Help")
+                await ctx.send(embed=embed)
+            except:
+                pass
+
     else:
-      await ctx.send("`Missing Permissions`")
-      
+        role = discord.utils.find(lambda r: r.name == f'{moderationRole}',
+                                  ctx.guild.roles)
+        if role in ctx.author.roles:
+            if reason == None:
+                embed = discord.Embed(
+                    title="Error",
+                    description='Please specify reason! !kick <User> <Reason>',
+                    color=random.choice(colors))
+                embed.set_footer(text="iQ Bot by Aevus : Q Help")
+                await ctx.send(embed=embed)
+            else:
+                try:
+                    channel = await member.create_dm()
+                    embed = discord.Embed(
+                        title="Kicked",
+                        description=
+                        "You are receiving a Kick for the following reason: " +
+                        reason,
+                        color=random.choice(colors))
+                    embed.set_footer(text="iQ Bot by Aevus : Q Help")
+                    await channel.send(embed=embed)
+                except:
+                    pass
+                doc_ref = db.collection(u'Servers').document(
+                    str(ctx.message.guild.id))
+                try:
+                    if doc_ref.get().exists:
+                        server = u'{}'.format(
+                            doc_ref.get({u'ModerationChannel'
+                                         }).to_dict()['ModerationChannel'])
+                        modchannel = bot.get_channel(int(server))
+                        embed = discord.Embed(
+                            title=f"Kicked",
+                            description=
+                            f"{member.mention} has been kicked for {reason} by {ctx.author.mention}",
+                            color=random.choice(colors))
+                        embed.set_footer(text="iQ Bot by Aevus : Q Help")
+                        await modchannel.send(embed=embed)
+                    await member.kick()
+                    embed = discord.Embed(
+                        title="Removed",
+                        description=
+                        f"Successfully kicked {member} for {reason}",
+                        color=random.choice(colors))
+                    embed.set_footer(text="iQ Bot by Aevus : Q Help")
+                    await ctx.send(embed=embed)
+                except:
+                    pass
+        else:
+            await ctx.send("`Missing Permissions`")
+
 @bot.command()
 async def ban(ctx, member: discord.Member, reason=None):
-  docs = db.collection(u'Servers').document(str(ctx.message.guild.id))
-  try:
-    moderationRole = u'{}'.format(docs.get({u'ModRole'}).to_dict()['ModRole'])
-  except:
-    moderationRole = 'None'
-  if str(moderationRole) == 'None':
-    if reason == None:
-        embed = discord.Embed(
-            title="Error", description='Please specify reason! `Q ban <User> <Reason>`', color=random.choice(colors))
-        embed.set_footer(text="iQ Bot by Aevus : Q Help")
-        await ctx.send(embed=embed)
-    else:
-        try:
-          channel = await member.create_dm()
-          embed = discord.Embed(
-              title="Banned", description="You are receiving a BAN for the following reason: " + reason , color=random.choice(colors))
-          embed.set_footer(text="iQ Bot by Aevus : Q Help")
-          await channel.send(embed=embed)
-        except:
-          pass
-        doc_ref = db.collection(u'Servers').document(str(ctx.message.guild.id))
-        try:
-          if doc_ref.get().exists:
-            server = u'{}'.format(doc_ref.get({u'ModerationChannel'}).to_dict()['ModerationChannel'])
-            modchannel = bot.get_channel(int(server))
-            embed = discord.Embed(title=f"Banned", description= f"{member.mention} has been banned for {reason} by {ctx.author.mention}",color=random.choice(colors))
+    docs = db.collection(u'Servers').document(str(ctx.message.guild.id))
+    try:
+        moderationRole = u'{}'.format(
+            docs.get({u'ModRole'}).to_dict()['ModRole'])
+    except:
+        moderationRole = 'None'
+    if str(moderationRole) == 'None':
+        if reason == None:
+            embed = discord.Embed(
+                title="Error",
+                description='Please specify reason! `Q ban <User> <Reason>`',
+                color=random.choice(colors))
             embed.set_footer(text="iQ Bot by Aevus : Q Help")
-            await modchannel.send(embed=embed)
-          await member.ban()
-          embed = discord.Embed(
-              title="BANNED", description=f"Successfully banned {member} for {reason}", color=random.choice(colors))
-          embed.set_footer(text="iQ Bot by Aevus : Q Help")
-          await ctx.send(embed=embed)
-        except:
-          pass
+            await ctx.send(embed=embed)
+        else:
+            try:
+                channel = await member.create_dm()
+                embed = discord.Embed(
+                    title="Banned",
+                    description=
+                    "You are receiving a BAN for the following reason: " +
+                    reason,
+                    color=random.choice(colors))
+                embed.set_footer(text="iQ Bot by Aevus : Q Help")
+                await channel.send(embed=embed)
+            except:
+                pass
+            doc_ref = db.collection(u'Servers').document(
+                str(ctx.message.guild.id))
+            try:
+                if doc_ref.get().exists:
+                    server = u'{}'.format(
+                        doc_ref.get({u'ModerationChannel'
+                                     }).to_dict()['ModerationChannel'])
+                    modchannel = bot.get_channel(int(server))
+                    embed = discord.Embed(
+                        title=f"Banned",
+                        description=
+                        f"{member.mention} has been banned for {reason} by {ctx.author.mention}",
+                        color=random.choice(colors))
+                    embed.set_footer(text="iQ Bot by Aevus : Q Help")
+                    await modchannel.send(embed=embed)
+                await member.ban()
+                embed = discord.Embed(
+                    title="BANNED",
+                    description=f"Successfully banned {member} for {reason}",
+                    color=random.choice(colors))
+                embed.set_footer(text="iQ Bot by Aevus : Q Help")
+                await ctx.send(embed=embed)
+            except:
+                pass
 
-  else:
-    role = discord.utils.find(lambda r: r.name == f'{moderationRole}', ctx.guild.roles)
-    if role in ctx.author.roles:
-        try:
-          channel = await member.create_dm()
-          embed = discord.Embed(
-              title="Banned", description="You are receiving a BAN for the following reason: " + reason , color=random.choice(colors))
-          embed.set_footer(text="iQ Bot by Aevus : Q Help")
-          await channel.send(embed=embed)
-        except:
-          pass
-        doc_ref = db.collection(u'Servers').document(str(ctx.message.guild.id))
-        try:
-          if doc_ref.get().exists:
-            server = u'{}'.format(doc_ref.get({u'ModerationChannel'}).to_dict()['ModerationChannel'])
-            modchannel = bot.get_channel(int(server))
-            embed = discord.Embed(title=f"Banned", description= f"{member.mention} has been banned for {reason} by {ctx.author.mention}",color=random.choice(colors))
-            embed.set_footer(text="iQ Bot by Aevus : Q Help")
-            await modchannel.send(embed=embed)
-          await member.ban()
-          embed = discord.Embed(
-              title="BANNED", description=f"Successfully banned {member} for {reason}", color=random.choice(colors))
-          embed.set_footer(text="iQ Bot by Aevus : Q Help")
-          await ctx.send(embed=embed)
-        except:
-          pass
     else:
-      await ctx.send("`Missing Permissions`")
+        role = discord.utils.find(lambda r: r.name == f'{moderationRole}',
+                                  ctx.guild.roles)
+        if role in ctx.author.roles:
+            try:
+                channel = await member.create_dm()
+                embed = discord.Embed(
+                    title="Banned",
+                    description=
+                    "You are receiving a BAN for the following reason: " +
+                    reason,
+                    color=random.choice(colors))
+                embed.set_footer(text="iQ Bot by Aevus : Q Help")
+                await channel.send(embed=embed)
+            except:
+                pass
+            doc_ref = db.collection(u'Servers').document(
+                str(ctx.message.guild.id))
+            try:
+                if doc_ref.get().exists:
+                    server = u'{}'.format(
+                        doc_ref.get({u'ModerationChannel'
+                                     }).to_dict()['ModerationChannel'])
+                    modchannel = bot.get_channel(int(server))
+                    embed = discord.Embed(
+                        title=f"Banned",
+                        description=
+                        f"{member.mention} has been banned for {reason} by {ctx.author.mention}",
+                        color=random.choice(colors))
+                    embed.set_footer(text="iQ Bot by Aevus : Q Help")
+                    await modchannel.send(embed=embed)
+                await member.ban()
+                embed = discord.Embed(
+                    title="BANNED",
+                    description=f"Successfully banned {member} for {reason}",
+                    color=random.choice(colors))
+                embed.set_footer(text="iQ Bot by Aevus : Q Help")
+                await ctx.send(embed=embed)
+            except:
+                pass
+        else:
+            await ctx.send("`Missing Permissions`")
 
 @bot.event
 async def on_member_join(member):
-  docs = db.collection(u'UserData').document(str(member.id))
-  guilddocs = db.collection(u'Servers').document(str(member.guild.id))
-  if docs.get().exists:
-    autorole = u'{}'.format(guilddocs.get({u'AutoRole'}).to_dict()['AutoRole'])
-    welcomemessage = u'{}'.format(guilddocs.get({u'WelcomeMessage'}).to_dict()['WelcomeMessage'])
-    if str(autorole) == "None":
-      if str(welcomemessage) == "None":
-        channel = await member.create_dm()
-        embed = discord.Embed(
-          title=f"Welcome to {member.guild.name}", description=f"{member.guild.name} is moderated by iQ.", color=random.choice(colors))
-        embed.set_footer(text="iQ Bot by Aevus : Q Help")
-        await asyncio.sleep(1)
-        await channel.send(embed=embed)
-      else:
-        channel = await member.create_dm()
-        embed = discord.Embed(
-          title=f"Welcome to {member.guild.name}", description=f"{str(welcomemessage)}.{member.guild.name} is moderated by iQ.", color=random.choice(colors))
-        embed.set_footer(text="iQ Bot by Aevus : Q Help")
-        await asyncio.sleep(1)
-        await channel.send(embed=embed)
-    else:
-      autorole = u'{}'.format(guilddocs.get({u'AutoRole'}).to_dict()['AutoRole'])
-      welcomemessage = u'{}'.format(guilddocs.get({u'WelcomeMessage'}).to_dict()['WelcomeMessage'])
-      rolee = discord.utils.get(member.guild.roles, name=f"{str(autorole)}")
-      await member.add_roles(rolee)
-
-      if str(welcomemessage) == "None":
-        channel = await member.create_dm()
-        embed = discord.Embed(
-          title=f"Welcome to {member.guild.name}", description=f"{member.guild.name} is moderated by iQ.", color=random.choice(colors))
-        embed.set_footer(text="iQ Bot by Aevus : Q Help")
-        await asyncio.sleep(1)
-        await channel.send(embed=embed)
-      else:
-        channel = await member.create_dm()
-        embed = discord.Embed(
-          title=f"Welcome to {member.guild.name}", description=f"{str(welcomemessage)}.{member.guild.name} is moderated by iQ.", color=random.choice(colors))
-        embed.set_footer(text="iQ Bot by Aevus : Q Help")
-        await asyncio.sleep(1)
-        await channel.send(embed=embed)
-  else:
-    if member.bot:
-      pass
-    else:
-      dt_string = datetime.now().strftime("%d/%m/%Y")
-      docs.set({
-        u'ID': str(member.id),
-        u'Pro': u'Base',
-        u'Boosts': 0,
-        u'Level': 1,
-        u'Cash': 100,
-        u'Joined': dt_string,
-      })
-      autorole = u'{}'.format(guilddocs.get({u'AutoRole'}).to_dict()['AutoRole'])
-      welcomemessage = u'{}'.format(guilddocs.get({u'WelcomeMessage'}).to_dict()['WelcomeMessage'])
-      if str(autorole) == "None":
-        if str(welcomemessage) == "None":
-          channel = await member.create_dm()
-          embed = discord.Embed(
-            title=f"Welcome to {member.guild.name}", description=f"{member.guild.name} is moderated by iQ.", color=random.choice(colors))
-          embed.set_footer(text="iQ Bot by Aevus : Q Help")
-          await asyncio.sleep(1)
-          await channel.send(embed=embed)
+    docs = db.collection(u'UserData').document(str(member.id))
+    guilddocs = db.collection(u'Servers').document(str(member.guild.id))
+    if docs.get().exists:
+        autorole = u'{}'.format(
+            guilddocs.get({u'AutoRole'}).to_dict()['AutoRole'])
+        welcomemessage = u'{}'.format(
+            guilddocs.get({u'WelcomeMessage'}).to_dict()['WelcomeMessage'])
+        if str(autorole) == "None":
+            if str(welcomemessage) == "None":
+                channel = await member.create_dm()
+                embed = discord.Embed(
+                    title=f"Welcome to {member.guild.name}",
+                    description=f"{member.guild.name} is moderated by iQ.",
+                    color=random.choice(colors))
+                embed.set_footer(text="iQ Bot by Aevus : Q Help")
+                await asyncio.sleep(1)
+                await channel.send(embed=embed)
+            else:
+                channel = await member.create_dm()
+                embed = discord.Embed(
+                    title=f"Welcome to {member.guild.name}",
+                    description=
+                    f"{str(welcomemessage)}.{member.guild.name} is moderated by iQ.",
+                    color=random.choice(colors))
+                embed.set_footer(text="iQ Bot by Aevus : Q Help")
+                await asyncio.sleep(1)
+                await channel.send(embed=embed)
         else:
-          channel = await member.create_dm()
-          embed = discord.Embed(
-            title=f"Welcome to {member.guild.name}", description=f"{str(welcomemessage)}.{member.guild.name} is moderated by iQ.", color=random.choice(colors))
-          embed.set_footer(text="iQ Bot by Aevus : Q Help")
-          await asyncio.sleep(1)
-          await channel.send(embed=embed)
-      else:
-        autorole = u'{}'.format(guilddocs.get({u'AutoRole'}).to_dict()['AutoRole'])
-        welcomemessage = u'{}'.format(guilddocs.get({u'WelcomeMessage'}).to_dict()['WelcomeMessage'])
-        rolee = discord.utils.get(member.guild.roles, name=f"{str(autorole)}")
-        await member.add_roles(rolee)
+            autorole = u'{}'.format(
+                guilddocs.get({u'AutoRole'}).to_dict()['AutoRole'])
+            welcomemessage = u'{}'.format(
+                guilddocs.get({u'WelcomeMessage'}).to_dict()['WelcomeMessage'])
+            rolee = discord.utils.get(
+                member.guild.roles, name=f"{str(autorole)}")
+            await member.add_roles(rolee)
 
-        if str(welcomemessage) == "None":
-          channel = await member.create_dm()
-          embed = discord.Embed(
-            title=f"Welcome to {member.guild.name}", description=f"{member.guild.name} is moderated by iQ.", color=random.choice(colors))
-          embed.set_footer(text="iQ Bot by Aevus : Q Help")
-          await asyncio.sleep(1)
-          await channel.send(embed=embed)
+            if str(welcomemessage) == "None":
+                channel = await member.create_dm()
+                embed = discord.Embed(
+                    title=f"Welcome to {member.guild.name}",
+                    description=f"{member.guild.name} is moderated by iQ.",
+                    color=random.choice(colors))
+                embed.set_footer(text="iQ Bot by Aevus : Q Help")
+                await asyncio.sleep(1)
+                await channel.send(embed=embed)
+            else:
+                channel = await member.create_dm()
+                embed = discord.Embed(
+                    title=f"Welcome to {member.guild.name}",
+                    description=
+                    f"{str(welcomemessage)}.{member.guild.name} is moderated by iQ.",
+                    color=random.choice(colors))
+                embed.set_footer(text="iQ Bot by Aevus : Q Help")
+                await asyncio.sleep(1)
+                await channel.send(embed=embed)
+    else:
+        if member.bot:
+            pass
         else:
-          channel = await member.create_dm()
-          embed = discord.Embed(
-            title=f"Welcome to {member.guild.name}", description=f"{str(welcomemessage)}.{member.guild.name} is moderated by iQ.", color=random.choice(colors))
-          embed.set_footer(text="iQ Bot by Aevus : Q Help")
-          await asyncio.sleep(1)
-          await channel.send(embed=embed)
+            dt_string = datetime.now().strftime("%d/%m/%Y")
+            docs.set({
+                u'ID': str(member.id),
+                u'Pro': u'Base',
+                u'Boosts': 0,
+                u'Level': 1,
+                u'Cash': 100,
+                u'Joined': dt_string,
+            })
+            autorole = u'{}'.format(
+                guilddocs.get({u'AutoRole'}).to_dict()['AutoRole'])
+            welcomemessage = u'{}'.format(
+                guilddocs.get({u'WelcomeMessage'}).to_dict()['WelcomeMessage'])
+            if str(autorole) == "None":
+                if str(welcomemessage) == "None":
+                    channel = await member.create_dm()
+                    embed = discord.Embed(
+                        title=f"Welcome to {member.guild.name}",
+                        description=f"{member.guild.name} is moderated by iQ.",
+                        color=random.choice(colors))
+                    embed.set_footer(text="iQ Bot by Aevus : Q Help")
+                    await asyncio.sleep(1)
+                    await channel.send(embed=embed)
+                else:
+                    channel = await member.create_dm()
+                    embed = discord.Embed(
+                        title=f"Welcome to {member.guild.name}",
+                        description=
+                        f"{str(welcomemessage)}.{member.guild.name} is moderated by iQ.",
+                        color=random.choice(colors))
+                    embed.set_footer(text="iQ Bot by Aevus : Q Help")
+                    await asyncio.sleep(1)
+                    await channel.send(embed=embed)
+            else:
+                autorole = u'{}'.format(
+                    guilddocs.get({u'AutoRole'}).to_dict()['AutoRole'])
+                welcomemessage = u'{}'.format(
+                    guilddocs.get(
+                        {u'WelcomeMessage'}).to_dict()['WelcomeMessage'])
+                rolee = discord.utils.get(
+                    member.guild.roles, name=f"{str(autorole)}")
+                await member.add_roles(rolee)
+
+                if str(welcomemessage) == "None":
+                    channel = await member.create_dm()
+                    embed = discord.Embed(
+                        title=f"Welcome to {member.guild.name}",
+                        description=f"{member.guild.name} is moderated by iQ.",
+                        color=random.choice(colors))
+                    embed.set_footer(text="iQ Bot by Aevus : Q Help")
+                    await asyncio.sleep(1)
+                    await channel.send(embed=embed)
+                else:
+                    channel = await member.create_dm()
+                    embed = discord.Embed(
+                        title=f"Welcome to {member.guild.name}",
+                        description=
+                        f"{str(welcomemessage)}.{member.guild.name} is moderated by iQ.",
+                        color=random.choice(colors))
+                    embed.set_footer(text="iQ Bot by Aevus : Q Help")
+                    await asyncio.sleep(1)
+                    await channel.send(embed=embed)
 
 @bot.command()
-async def coupon(ctx,actype = 'AccPro',count = 0):
-  tokennn = str(uuid.uuid4())
-  docs = db.collection(u'Coupon').document(str(tokennn))
-  dt_string = datetime.now().strftime("%d/%m/%Y")
-  docs.set({
+async def coupon(ctx, actype='AccPro', count=0):
+    tokennn = str(uuid.uuid4())
+    docs = db.collection(u'Coupon').document(str(tokennn))
+    dt_string = datetime.now().strftime("%d/%m/%Y")
+    docs.set({
         u'Token': str(tokennn),
-        u'Type' : actype,
-        u'Status' : 'Active',
-        u'Boosts' : count,
+        u'Type': actype,
+        u'Status': 'Active',
+        u'Boosts': count,
         u'Created': dt_string,
-      })
-  await ctx.send(f"`Created {tokennn}`")
-
-
-@bot.command()
-async def claim(ctx,code:str):
-  docs = db.collection(u'Coupon').document(str(code))
-  userdocs = db.collection(u'UserData').document(str(ctx.author.id))
-  guilddocs = db.collection(u'Servers').document(str(ctx.guild.id))
-  dt_string = datetime.now().strftime("%d/%m/%Y")
-  if docs.get().exists:
-    claimed = u'{}'.format(docs.get({u'Status'}).to_dict()['Status'])
-    if str(claimed) == "Active":
-      gvtype = u'{}'.format(docs.get({u'Type'}).to_dict()['Type'])
-      if str(gvtype) == "AccPro":
-        userstatus = u'{}'.format(userdocs.get({u'Pro'}).to_dict()['Pro'])
-        if str(userstatus) == "Pro":
-          await ctx.send("You already have Pro")
-        else:
-          docs.set({
-          u'Status': f"Claimed {dt_string}",
-          },merge=True)
-          userdocs.set({
-          u'Pro': f"Pro",
-          },merge=True)
-          await ctx.send("`Claimed`")
-
-      if str(gvtype) == "GuildPro":
-        userstatus = u'{}'.format(guilddocs.get({u'Pro'}).to_dict()['Pro'])
-        if str(userstatus) == "Pro":
-          await ctx.send(f"{ctx.guild.name} is already Pro")
-        else:
-          docs.set({
-          u'Status': f"Claimed {dt_string}",
-          },merge=True)
-          guilddocs.set({
-          u'Pro': f"Pro",
-          },merge=True)
-          await ctx.send("`Claimed`")
-      if str(gvtype) == "Boost":
-          currentboosts = u'{}'.format(userdocs.get({u'Boosts'}).to_dict()['Boosts'])
-          giftedboosts = u'{}'.format(docs.get({u'Boosts'}).to_dict()['Boosts'])
-          newboosts = int(currentboosts)+int(giftedboosts)
-          docs.set({
-          u'Status': f"Claimed {dt_string}",
-          },merge=True)
-          userdocs.set({
-          u'Boosts': newboosts,
-          },merge=True)
-          await ctx.send("`Claimed`")
-
-    else:
-      await ctx.send("`Already Used`")
-    
+    })
+    await ctx.send(f"`Created {tokennn}`")
 
 @bot.command()
-async def Boost(ctx, upgradetype="Guild"):        
-  docs = db.collection(u'UserData').document(str(ctx.author.id))
-  guilddocs = db.collection(u'Servers').document(str(ctx.guild.id))
-  currentboosts = u'{}'.format(docs.get({u'Boosts'}).to_dict()['Boosts'])
-  if int(currentboosts) < 1:
-    await ctx.send("`No boosts remaining`")
-  elif int(currentboosts) > 0:
-    print('a')
-    serverstatus = u'{}'.format(guilddocs.get({u'Pro'}).to_dict()['Pro'])
-    print('b')
-    booster = u'{}'.format(guilddocs.get({u'Booster'}).to_dict()['Booster'])
-    print('c')
-    if str(serverstatus) == "Pro":
-      await ctx.send(f"{str(booster)} already boosted the server")
-    else:
-      print('d')
-      newboost = int(currentboosts) - 1
-      print('e')
-      docs.set({
-            u'Boosts': newboost,
-            },merge=True)
-      guilddocs.set({
-            u'Pro': f"Pro",
-            u'Booster': str(ctx.author.id),
-            },merge=True)
-      try:
-        server = u'{}'.format(docs.get({u'ModerationChannel'}).to_dict()['ModerationChannel'])
-        modchannel = bot.get_channel(int(server))
-        embed = discord.Embed(title=f"Boosted", description= f"{ctx.guild.name} upgraded the server to PRO! Thanks to {ctx.author.mention}",color=random.choice(colors))
-        embed.set_footer(text="iQ Bot by Aevus : Q Help")
-        await modchannel.send(embed=embed)
-      except:
-        await ctx.send(f"{ctx.guild.name} upgraded the server to PRO! Thanks to {ctx.author.mention}")
-            
+async def claim(ctx, code: str):
+    docs = db.collection(u'Coupon').document(str(code))
+    userdocs = db.collection(u'UserData').document(str(ctx.author.id))
+    guilddocs = db.collection(u'Servers').document(str(ctx.guild.id))
+    dt_string = datetime.now().strftime("%d/%m/%Y")
+    if docs.get().exists:
+        claimed = u'{}'.format(docs.get({u'Status'}).to_dict()['Status'])
+        if str(claimed) == "Active":
+            gvtype = u'{}'.format(docs.get({u'Type'}).to_dict()['Type'])
+            if str(gvtype) == "AccPro":
+                userstatus = u'{}'.format(
+                    userdocs.get({u'Pro'}).to_dict()['Pro'])
+                if str(userstatus) == "Pro":
+                    await ctx.send("You already have Pro")
+                else:
+                    docs.set({
+                        u'Status': f"Claimed {dt_string}",
+                    }, merge=True)
+                    userdocs.set({
+                        u'Pro': f"Pro",
+                    }, merge=True)
+                    await ctx.send("`Claimed`")
+
+            if str(gvtype) == "GuildPro":
+                userstatus = u'{}'.format(
+                    guilddocs.get({u'Pro'}).to_dict()['Pro'])
+                if str(userstatus) == "Pro":
+                    await ctx.send(f"{ctx.guild.name} is already Pro")
+                else:
+                    docs.set({
+                        u'Status': f"Claimed {dt_string}",
+                    }, merge=True)
+                    guilddocs.set({
+                        u'Pro': f"Pro",
+                    }, merge=True)
+                    await ctx.send("`Claimed`")
+            if str(gvtype) == "Boost":
+                currentboosts = u'{}'.format(
+                    userdocs.get({u'Boosts'}).to_dict()['Boosts'])
+                giftedboosts = u'{}'.format(
+                    docs.get({u'Boosts'}).to_dict()['Boosts'])
+                newboosts = int(currentboosts) + int(giftedboosts)
+                docs.set({
+                    u'Status': f"Claimed {dt_string}",
+                }, merge=True)
+                userdocs.set({
+                    u'Boosts': newboosts,
+                }, merge=True)
+                await ctx.send("`Claimed`")
+
+        else:
+            await ctx.send("`Already Used`")
+
+@bot.command()
+async def Boost(ctx, upgradetype="Guild"):
+    docs = db.collection(u'UserData').document(str(ctx.author.id))
+    guilddocs = db.collection(u'Servers').document(str(ctx.guild.id))
+    currentboosts = u'{}'.format(docs.get({u'Boosts'}).to_dict()['Boosts'])
+    if int(currentboosts) < 1:
+        await ctx.send("`No boosts remaining`")
+    elif int(currentboosts) > 0:
+        print('a')
+        serverstatus = u'{}'.format(guilddocs.get({u'Pro'}).to_dict()['Pro'])
+        print('b')
+        booster = u'{}'.format(
+            guilddocs.get({u'Booster'}).to_dict()['Booster'])
+        print('c')
+        if str(serverstatus) == "Pro":
+            await ctx.send(f"{str(booster)} already boosted the server")
+        else:
+            print('d')
+            newboost = int(currentboosts) - 1
+            print('e')
+            docs.set({
+                u'Boosts': newboost,
+            }, merge=True)
+            guilddocs.set({
+                u'Pro': f"Pro",
+                u'Booster': str(ctx.author.id),
+            },
+                          merge=True)
+            try:
+                server = u'{}'.format(
+                    docs.get(
+                        {u'ModerationChannel'}).to_dict()['ModerationChannel'])
+                modchannel = bot.get_channel(int(server))
+                embed = discord.Embed(
+                    title=f"Boosted",
+                    description=
+                    f"{ctx.guild.name} upgraded the server to PRO! Thanks to {ctx.author.mention}",
+                    color=random.choice(colors))
+                embed.set_footer(text="iQ Bot by Aevus : Q Help")
+                await modchannel.send(embed=embed)
+            except:
+                await ctx.send(
+                    f"{ctx.guild.name} upgraded the server to PRO! Thanks to {ctx.author.mention}"
+                )
+
 @bot.command()
 async def About(ctx):
-  embed = discord.Embed(title=f"{ctx.author.name}", description="iQ is the ultimate moderation bot! It has everything relating to server management. ", color=random.choice(colors))
-  await asyncio.sleep(1)
-  embed.set_thumbnail(url="https://i.imgur.com/f6XzjPE.png")
-  embed.set_footer(text="iQ Bot by Aevus : Q Help")
-  doc_ref = db.collection(u'UserData').document(f'{ctx.author.id}')
-  if doc_ref.get().exists:
-    embed.add_field(name="Name",
-                        value=f'{ctx.author.name}', inline=False)
-    cash = u'{}'.format(doc_ref.get({u'Cash'}).to_dict()['Cash'])
-    embed.add_field(name="Cash",
-                        value=f'{str(cash)}', inline=False)
-    level = u'{}'.format(doc_ref.get({u'Level'}).to_dict()['Level'])
-    embed.add_field(name="Level",
-                        value=f'{str(level)}', inline=False)
-    boost = u'{}'.format(doc_ref.get({u'Boosts'}).to_dict()['Boosts'])
-    embed.add_field(name="Boosts",
-                        value=f'{str(boost)}', inline=False)
-    pro = u'{}'.format(doc_ref.get({u'Pro'}).to_dict()['Pro'])
-    embed.add_field(name="Account Type",
-                        value=f'{str(pro)}', inline=False)
-    joined = u'{}'.format(doc_ref.get({u'Joined'}).to_dict()['Joined'])
-    embed.add_field(name="Joined",
-                        value=f'{str(joined)}', inline=False)    
-  await ctx.send(embed=embed)
-
-
+    embed = discord.Embed(
+        title=f"{ctx.author.name}",
+        description=
+        "iQ is the ultimate moderation bot! It has everything relating to server management. ",
+        color=random.choice(colors))
+    await asyncio.sleep(1)
+    embed.set_thumbnail(url="https://i.imgur.com/f6XzjPE.png")
+    embed.set_footer(text="iQ Bot by Aevus : Q Help")
+    doc_ref = db.collection(u'UserData').document(f'{ctx.author.id}')
+    if doc_ref.get().exists:
+        embed.add_field(name="Name", value=f'{ctx.author.name}', inline=False)
+        cash = u'{}'.format(doc_ref.get({u'Cash'}).to_dict()['Cash'])
+        embed.add_field(name="Cash", value=f'{str(cash)}', inline=False)
+        level = u'{}'.format(doc_ref.get({u'Level'}).to_dict()['Level'])
+        embed.add_field(name="Level", value=f'{str(level)}', inline=False)
+        boost = u'{}'.format(doc_ref.get({u'Boosts'}).to_dict()['Boosts'])
+        embed.add_field(name="Boosts", value=f'{str(boost)}', inline=False)
+        pro = u'{}'.format(doc_ref.get({u'Pro'}).to_dict()['Pro'])
+        embed.add_field(name="Account Type", value=f'{str(pro)}', inline=False)
+        joined = u'{}'.format(doc_ref.get({u'Joined'}).to_dict()['Joined'])
+        embed.add_field(name="Joined", value=f'{str(joined)}', inline=False)
+    await ctx.send(embed=embed)
 
 @bot.command()
 async def setupacount(ctx):
-  for member in ctx.guild.members:
-    docs = db.collection(u'UserData').document(str(member.id))
-    if docs.get().exists:
-      pass
-    else:
-      if member.bot:
-        pass
-      else:
-        dt_string = datetime.now().strftime("%d/%m/%Y")
-        docs.set({
-          u'ID': str(member.id),
-          u'Pro': u'Base',
-          u'Boosts': 0,
-          u'Level': 1,
-          u'Cash': 100,
-          u'Joined': dt_string,
-        })   
-         
+    for member in ctx.guild.members:
+        docs = db.collection(u'UserData').document(str(member.id))
+        if docs.get().exists:
+            pass
+        else:
+            if member.bot:
+                pass
+            else:
+                dt_string = datetime.now().strftime("%d/%m/%Y")
+                docs.set({
+                    u'ID': str(member.id),
+                    u'Pro': u'Base',
+                    u'Boosts': 0,
+                    u'Level': 1,
+                    u'Cash': 100,
+                    u'Joined': dt_string,
+                })
+
 @bot.event
 async def on_message(message):
-  try:
-    role = discord.utils.find(lambda r: r.name == 'Muted', message.guild.roles)
-    if role in message.author.roles:
-      await message.delete()
-      try:
-        channel = await message.author.create_dm()
-        embed = discord.Embed(
-          title="Muted", description=f"You are muted from {message.guild.name}! Messages you send will be deleted immediately.", color=random.choice(colors))
-        embed.set_footer(text="iQ Bot by Aevus : Q Help")
-        await asyncio.sleep(1)
-        await channel.send(embed=embed)
-      except:
-        pass
-    else:
-      if message.content.startswith('Q '):
-        f = open("status.txt", "r")
-        status = f.read()
-        if status == "1":
-          await bot.process_commands(message)
-        elif message.content.startswith('Q Admin'):
-          await bot.process_commands(message)
+    try:
+        role = discord.utils.find(lambda r: r.name == 'Muted',
+                                  message.guild.roles)
+        if role in message.author.roles:
+            await message.delete()
+            try:
+                channel = await message.author.create_dm()
+                embed = discord.Embed(
+                    title="Muted",
+                    description=
+                    f"You are muted from {message.guild.name}! Messages you send will be deleted immediately.",
+                    color=random.choice(colors))
+                embed.set_footer(text="iQ Bot by Aevus : Q Help")
+                await asyncio.sleep(1)
+                await channel.send(embed=embed)
+            except:
+                pass
         else:
-          await message.channel.send("`IQ is currently offline, please try again later!`")
-  except:
-    if message.content.startswith('Q '):
-      f = open("status.txt", "r")
-      status = f.read()
-      if status == "1":
-        await bot.process_commands(message)
-      elif message.content.startswith('Q Admin'):
-        await bot.process_commands(message)
-      else:
-        await message.channel.send("`IQ is currently offline, please try again later!`")
-     
-@bot.command()
-async def Mute(ctx,member: discord.Member, *, reason):
-  docs = db.collection(u'Servers').document(str(ctx.message.guild.id))
-  try:
-    moderationRole = u'{}'.format(docs.get({u'ModRole'}).to_dict()['ModRole'])
-  except:
-    moderationRole = 'None'
-  if str(moderationRole) == 'None':
-    rolee = discord.utils.get(ctx.guild.roles, name="Muted")
-    await member.add_roles(rolee)
-    if docs.get().exists:
-            server = u'{}'.format(docs.get({u'ModerationChannel'}).to_dict()['ModerationChannel'])
-            modchannel = bot.get_channel(int(server))
-            embed = discord.Embed(title=f"Muted", description= f"{member.mention} has been muted for {reason} by {ctx.author.mention}",color=random.choice(colors))
-            embed.set_footer(text="iQ Bot by Aevus : Q Help")
-            await modchannel.send(embed=embed)
-  else:
-    role = discord.utils.find(lambda r: r.name == f'{moderationRole}', ctx.guild.roles)
-    if role in ctx.author.roles:
-      rolee = discord.utils.get(ctx.guild.roles, name="Muted")
-      await member.add_roles(rolee)
-      if docs.get().exists:
-            server = u'{}'.format(docs.get({u'ModerationChannel'}).to_dict()['ModerationChannel'])
-            modchannel = bot.get_channel(int(server))
-            embed = discord.Embed(title=f"Muted", description= f"{member.mention} has been muted for **{reason}** by {ctx.author.mention}",color=random.choice(colors))
-            embed.set_footer(text="iQ Bot by Aevus : Q Help")
-            await modchannel.send(embed=embed)
-    else:
-      await ctx.send("`Missing Permissions`")
-  role = discord.utils.get(ctx.guild.roles, name="Muted")
+            if message.content.startswith('Q '):
+                f = open("status.txt", "r")
+                status = f.read()
+                if status == "1":
+                    await bot.process_commands(message)
+                elif message.content.startswith('Q Admin'):
+                    await bot.process_commands(message)
+                else:
+                    await message.channel.send(
+                        "`IQ is currently offline, please try again later!`")
+    except:
+        if message.content.startswith('Q '):
+            f = open("status.txt", "r")
+            status = f.read()
+            if status == "1":
+                await bot.process_commands(message)
+            elif message.content.startswith('Q Admin'):
+                await bot.process_commands(message)
+            else:
+                await message.channel.send(
+                    "`IQ is currently offline, please try again later!`")
 
 @bot.command()
-async def UnMute(ctx,member: discord.Member):
-  docs = db.collection(u'Servers').document(str(ctx.message.guild.id))
-  try:
-    moderationRole = u'{}'.format(docs.get({u'ModRole'}).to_dict()['ModRole'])
-  except:
-    moderationRole = 'None'
-  if str(moderationRole) == 'None':
-    rolee = discord.utils.get(ctx.guild.roles, name="Muted")
-    await member.remove_roles(rolee)
-    if docs.get().exists:
-            server = u'{}'.format(docs.get({u'ModerationChannel'}).to_dict()['ModerationChannel'])
+async def Mute(ctx, member: discord.Member, *, reason):
+    docs = db.collection(u'Servers').document(str(ctx.message.guild.id))
+    try:
+        moderationRole = u'{}'.format(
+            docs.get({u'ModRole'}).to_dict()['ModRole'])
+    except:
+        moderationRole = 'None'
+    if str(moderationRole) == 'None':
+        rolee = discord.utils.get(ctx.guild.roles, name="Muted")
+        await member.add_roles(rolee)
+        if docs.get().exists:
+            server = u'{}'.format(
+                docs.get(
+                    {u'ModerationChannel'}).to_dict()['ModerationChannel'])
             modchannel = bot.get_channel(int(server))
-            embed = discord.Embed(title=f"UnMuted", description= f"{member.mention} has been unmuted by {ctx.author.mention}",color=random.choice(colors))
-            embed.set_footer(text="iQ Bot by Aevus : Q Help")
-            await modchannel.send(embed=embed)
-  else:
-    role = discord.utils.find(lambda r: r.name == f'{moderationRole}', ctx.guild.roles)
-    if role in ctx.author.roles:
-      rolee = discord.utils.get(ctx.guild.roles, name="Muted")
-      await member.remove_roles(rolee)
-      if docs.get().exists:
-            server = u'{}'.format(docs.get({u'ModerationChannel'}).to_dict()['ModerationChannel'])
-            modchannel = bot.get_channel(int(server))
-            embed = discord.Embed(title=f"UnMuted", description= f"{member.mention} has been unmuted by {ctx.author.mention}",color=random.choice(colors))
+            embed = discord.Embed(
+                title=f"Muted",
+                description=
+                f"{member.mention} has been muted for {reason} by {ctx.author.mention}",
+                color=random.choice(colors))
             embed.set_footer(text="iQ Bot by Aevus : Q Help")
             await modchannel.send(embed=embed)
     else:
-      await ctx.send("`Missing Permissions`")
-  role = discord.utils.get(ctx.guild.roles, name="Muted")
+        role = discord.utils.find(lambda r: r.name == f'{moderationRole}',
+                                  ctx.guild.roles)
+        if role in ctx.author.roles:
+            rolee = discord.utils.get(ctx.guild.roles, name="Muted")
+            await member.add_roles(rolee)
+            if docs.get().exists:
+                server = u'{}'.format(
+                    docs.get(
+                        {u'ModerationChannel'}).to_dict()['ModerationChannel'])
+                modchannel = bot.get_channel(int(server))
+                embed = discord.Embed(
+                    title=f"Muted",
+                    description=
+                    f"{member.mention} has been muted for **{reason}** by {ctx.author.mention}",
+                    color=random.choice(colors))
+                embed.set_footer(text="iQ Bot by Aevus : Q Help")
+                await modchannel.send(embed=embed)
+        else:
+            await ctx.send("`Missing Permissions`")
+    role = discord.utils.get(ctx.guild.roles, name="Muted")
+
+@bot.command()
+async def UnMute(ctx, member: discord.Member):
+    docs = db.collection(u'Servers').document(str(ctx.message.guild.id))
+    try:
+        moderationRole = u'{}'.format(
+            docs.get({u'ModRole'}).to_dict()['ModRole'])
+    except:
+        moderationRole = 'None'
+    if str(moderationRole) == 'None':
+        rolee = discord.utils.get(ctx.guild.roles, name="Muted")
+        await member.remove_roles(rolee)
+        if docs.get().exists:
+            server = u'{}'.format(
+                docs.get(
+                    {u'ModerationChannel'}).to_dict()['ModerationChannel'])
+            modchannel = bot.get_channel(int(server))
+            embed = discord.Embed(
+                title=f"UnMuted",
+                description=
+                f"{member.mention} has been unmuted by {ctx.author.mention}",
+                color=random.choice(colors))
+            embed.set_footer(text="iQ Bot by Aevus : Q Help")
+            await modchannel.send(embed=embed)
+    else:
+        role = discord.utils.find(lambda r: r.name == f'{moderationRole}',
+                                  ctx.guild.roles)
+        if role in ctx.author.roles:
+            rolee = discord.utils.get(ctx.guild.roles, name="Muted")
+            await member.remove_roles(rolee)
+            if docs.get().exists:
+                server = u'{}'.format(
+                    docs.get(
+                        {u'ModerationChannel'}).to_dict()['ModerationChannel'])
+                modchannel = bot.get_channel(int(server))
+                embed = discord.Embed(
+                    title=f"UnMuted",
+                    description=
+                    f"{member.mention} has been unmuted by {ctx.author.mention}",
+                    color=random.choice(colors))
+                embed.set_footer(text="iQ Bot by Aevus : Q Help")
+                await modchannel.send(embed=embed)
+        else:
+            await ctx.send("`Missing Permissions`")
+    role = discord.utils.get(ctx.guild.roles, name="Muted")
 
 @bot.command()
 async def Invite(ctx, member=None):
-  if member == None:
-    invitelink = await ctx.channel.create_invite(max_uses=1,unique=True)
-    await ctx.send(invitelink)
-  else:
-    channel = await member.create_dm()
-    #creating invite link
-    invitelink = await ctx.channel.create_invite(max_uses=1,unique=True)
-    #dming it to the person
-    await channel.send(invitelink)
+    if member == None:
+        invitelink = await ctx.channel.create_invite(max_uses=1, unique=True)
+        await ctx.send(invitelink)
+    else:
+        channel = await member.create_dm()
+        #creating invite link
+        invitelink = await ctx.channel.create_invite(max_uses=1, unique=True)
+        #dming it to the person
+        await channel.send(invitelink)
 
 @bot.command()
-async def Admin(ctx,tokenn: str, cmnd: str):
-  if tokenn==os.environ.get("TOKENN"):
-    if cmnd == 'Disable':
-      text_file = open("status.txt", "w")
-      text_file.write("0")
-      text_file.close()
-      
-      await ctx.send('`Disabled`')  
-    elif cmnd == 'Enable':
-      text_file = open("status.txt", "w")
-      text_file.write("1")
-      text_file.close()
-      
-      await ctx.send('`Enabled`')  
+async def Admin(ctx, tokenn: str, cmnd: str):
+    if tokenn == os.environ.get("TOKENN"):
+        if cmnd == 'Disable':
+            text_file = open("status.txt", "w")
+            text_file.write("0")
+            text_file.close()
+
+            await ctx.send('`Disabled`')
+        elif cmnd == 'Enable':
+            text_file = open("status.txt", "w")
+            text_file.write("1")
+            text_file.close()
+
+            await ctx.send('`Enabled`')
+        else:
+            await ctx.send('`Command Not Found`')
     else:
-      await ctx.send('`Command Not Found`')  
-  else:
-    await ctx.send('`Panel Access Denied`')
+        await ctx.send('`Panel Access Denied`')
 
 @bot.command()
 async def Feedback(ctx, *, message: str):
-  today = date.today()
-  datetoday = today.strftime("%m/%d/%y")
-  logzero.logfile("feedback.log", maxBytes=1e6, backupCount=3)
-  logger.info(f"{datetoday} {ctx.author.id} {str(message)}")
-  channel = await ctx.author.create_dm()
-  await channel.send('Thanks for the feedback')
-  time.sleep(1)
-  await channel.send(f'Received as: `{datetoday} {ctx.author.id} {str(message)}`')
+    today = date.today()
+    datetoday = today.strftime("%m/%d/%y")
+    logzero.logfile("feedback.log", maxBytes=1e6, backupCount=3)
+    logger.info(f"{datetoday} {ctx.author.id} {str(message)}")
+    channel = await ctx.author.create_dm()
+    await channel.send('Thanks for the feedback')
+    time.sleep(1)
+    await channel.send(
+        f'Received as: `{datetoday} {ctx.author.id} {str(message)}`')
 
 @bot.command()
-async def Host(ctx):  
-  done = time.time()
-  true_member_count = len([m for m in ctx.guild.members if not m.bot])
-  elapsed = done - start
-  embed = discord.Embed(title="ACTIVE", description= "Specs",color=random.choice(colors))
-  ping = round(bot.latency * 1000)
-  #embed.set_thumbnail(url="https://i.imgur.com/c6nh2sN.png")
-  embed.add_field(name="Machine",
-                    value=str(platform.machine()), inline=False)
-  embed.add_field(name="Host Version",
-                    value=str(platform.version()), inline=False)
-  embed.add_field(name="Platform",
-                    value=str(platform.platform()), inline=False)
-  embed.add_field(name="System",
-                    value=str(platform.system()), inline=False)
-  embed.add_field(name="Processor",
-                    value=str(platform.processor()), inline=False)
-  embed.add_field(name="Ping",
-                    value=str(ping), inline=False)
-  embed.add_field(name="Uptime",
-                    value=str(round(elapsed,2)), inline=False)
-  embed.add_field(name="Servers In",
-                    value=str(len(bot.guilds)), inline=False)     
-  try:
-    doc_ref = db.collection(u'ServerData').document(u'Settings')
-    serverstatus = u'{}'.format(doc_ref.get({u'Status'}).to_dict()['Status'])
-    if str(serverstatus) == "Online":
-      embed.add_field(name="Server",
-                        value='Online', inline=False)                    
-    else:
-      embed.add_field(name="Server",
-                        value='Offline', inline=False)
-  except:
-    pass
-  try:
-    doc_ref = db.collection(u'ServerData').document(u'Settings')
-    version = u'{}'.format(doc_ref.get({u'Version'}).to_dict()['Version'])
-    embed.add_field(name="Version",
-                        value=str(version), inline=False)                    
-  except:
-    pass
-  embed.add_field(name="Guild Members",
-                    value=str(true_member_count), inline=False)    
-  embed.set_footer(text="iQ Bot by Aevus : Q Help")
-  await ctx.send(embed=embed)
+async def Host(ctx):
+    done = time.time()
+    true_member_count = len([m for m in ctx.guild.members if not m.bot])
+    elapsed = done - start
+    embed = discord.Embed(
+        title="ACTIVE", description="Specs", color=random.choice(colors))
+    ping = round(bot.latency * 1000)
+    #embed.set_thumbnail(url="https://i.imgur.com/c6nh2sN.png")
+    embed.add_field(
+        name="Machine", value=str(platform.machine()), inline=False)
+    embed.add_field(
+        name="Host Version", value=str(platform.version()), inline=False)
+    embed.add_field(
+        name="Platform", value=str(platform.platform()), inline=False)
+    embed.add_field(name="System", value=str(platform.system()), inline=False)
+    embed.add_field(
+        name="Processor", value=str(platform.processor()), inline=False)
+    embed.add_field(name="Ping", value=str(ping), inline=False)
+    embed.add_field(name="Uptime", value=str(round(elapsed, 2)), inline=False)
+    embed.add_field(
+        name="Servers In", value=str(len(bot.guilds)), inline=False)
+    try:
+        doc_ref = db.collection(u'ServerData').document(u'Settings')
+        serverstatus = u'{}'.format(
+            doc_ref.get({u'Status'}).to_dict()['Status'])
+        if str(serverstatus) == "Online":
+            embed.add_field(name="Server", value='Online', inline=False)
+        else:
+            embed.add_field(name="Server", value='Offline', inline=False)
+    except:
+        pass
+    try:
+        doc_ref = db.collection(u'ServerData').document(u'Settings')
+        version = u'{}'.format(doc_ref.get({u'Version'}).to_dict()['Version'])
+        embed.add_field(name="Version", value=str(version), inline=False)
+    except:
+        pass
+    embed.add_field(
+        name="Guild Members", value=str(true_member_count), inline=False)
+    embed.set_footer(text="iQ Bot by Aevus : Q Help")
+    await ctx.send(embed=embed)
 
 @bot.command()
 async def Members(ctx):
-  embed = discord.Embed(title="Members", description= "iQ is the ultimate moderation bot! It has everything relating to server management. ",color=random.choice(colors))
-  embed.set_thumbnail(url="https://i.imgur.com/f6XzjPE.png")
-  embed.set_footer(text="iQ Bot by Aevus : Q Help")
-  doc_ref = db.collection(u'Servers').document(f'{ctx.guild.id}')
-  modrole = u'{}'.format(doc_ref.get({u'ModRole'}).to_dict()['ModRole'])  
-  for member in ctx.guild.members:
+    embed = discord.Embed(
+        title="Members",
+        description=
+        "iQ is the ultimate moderation bot! It has everything relating to server management. ",
+        color=random.choice(colors))
+    embed.set_thumbnail(url="https://i.imgur.com/f6XzjPE.png")
+    embed.set_footer(text="iQ Bot by Aevus : Q Help")
+    doc_ref = db.collection(u'Servers').document(f'{ctx.guild.id}')
+    modrole = u'{}'.format(doc_ref.get({u'ModRole'}).to_dict()['ModRole'])
+    for member in ctx.guild.members:
         if member.bot:
-          embed.add_field(name=f"{str(member.name)}",
-                    value="Bot", inline=False)              
+            embed.add_field(
+                name=f"{str(member.name)}", value="Bot", inline=False)
         else:
-            role = discord.utils.find(lambda r: r.name == 'Muted', ctx.guild.roles)
+            role = discord.utils.find(lambda r: r.name == 'Muted',
+                                      ctx.guild.roles)
             if role in member.roles:
-              embed.add_field(name=f"{str(member.name)}",value=f"Muted", inline=False)
+                embed.add_field(
+                    name=f"{str(member.name)}", value=f"Muted", inline=False)
             else:
-              embed.add_field(name=f"{str(member.name)}",value='User',inline=False)
-  await ctx.send(embed=embed)
+                embed.add_field(
+                    name=f"{str(member.name)}", value='User', inline=False)
+    await ctx.send(embed=embed)
 
 @bot.command()
 async def Weather(ctx, *, City):
     complete_url = base_url + "appid=" + api_key + "&q=" + City
     response = requests.get(complete_url)
     x = response.json()
-    if x["cod"] != "404": 
-        y = x["main"] 
-        current_temperature = str(round(y["temp"]-273.15,2))
-        current_pressure = y["pressure"] 
+    if x["cod"] != "404":
+        y = x["main"]
+        current_temperature = str(round(y["temp"] - 273.15, 2))
+        current_pressure = y["pressure"]
         current_humidiy = y["humidity"]
-        min_temp = format(round(y["temp_min"]-273.15,2))
-        max_temp = format(round(y["temp_max"]-273.15,2))
-        feels_like = format(round(y["feels_like"]-273.15,2))
-        z = x["weather"] 
+        min_temp = format(round(y["temp_min"] - 273.15, 2))
+        max_temp = format(round(y["temp_max"] - 273.15, 2))
+        feels_like = format(round(y["feels_like"] - 273.15, 2))
+        z = x["weather"]
         icon = z[0]["icon"]
-        weather_description = z[0]["description"] 
-        weather_main = z[0]["main"] 
+        weather_description = z[0]["description"]
+        weather_main = z[0]["main"]
         w = x["wind"]
         wind = w["speed"]
         wind_deg = w["deg"]
+
         def faren(tem):
-          tem = float(tem)
-          return str(round(tem*9/5+32,2))
+            tem = float(tem)
+            return str(round(tem * 9 / 5 + 32, 2))
+
         def degDir(d):
-          dirs = ['N', 'N/NE', 'NE', 'E/NE', 'E', 'E/SE', 'SE', 'S/SE', 'S', 'S/SW', 'SW', 'W/SW', 'W', 'W/NW', 'NW', 'N/NW']
-          ix = round(d / (360. / len(dirs)))
-          return dirs[ix % len(dirs)]
+            dirs = [
+                'N', 'N/NE', 'NE', 'E/NE', 'E', 'E/SE', 'SE', 'S/SE', 'S',
+                'S/SW', 'SW', 'W/SW', 'W', 'W/NW', 'NW', 'N/NW'
+            ]
+            ix = round(d / (360. / len(dirs)))
+            return dirs[ix % len(dirs)]
+
         embed = discord.Embed(
             title=City,
             description=
             "iQ Weather gets information with the help of openweathermap.org",
             color=random.choice(colors))
-        embed.set_author(
-            name='iQ', url="https://synapsebot.netlify.app")
+        embed.set_author(name='iQ', url="https://synapsebot.netlify.app")
         embed.set_thumbnail(url="https://i.imgur.com/f6XzjPE.png")
         embed.add_field(
             name="Temperature",
-            value= current_temperature + "°C - " + str(faren(current_temperature)) + "°F",
-            inline = False)
+            value=current_temperature + "°C - " + str(
+                faren(current_temperature)) + "°F",
+            inline=False)
         embed.add_field(
             name="Feels Like",
             value=feels_like + "°C - " + str(faren(feels_like)) + "°F",
@@ -1408,25 +1679,25 @@ async def Weather(ctx, *, City):
         embed.add_field(
             name="Minimum Temperature",
             value=min_temp + "°C - " + str(faren(min_temp)) + "°F",
-            inline=False)  
+            inline=False)
         embed.add_field(
             name="Maximum Temperature",
             value=max_temp + "°C - " + str(faren(max_temp)) + "°F",
             inline=False)
         embed.add_field(
             name="Wind",
-            value=str(wind) + " mph " + str(degDir(wind_deg)),inline=False)       
+            value=str(wind) + " mph " + str(degDir(wind_deg)),
+            inline=False)
         embed.add_field(
-            name="Humidity", value= str(current_humidiy) + "%", inline=False)
+            name="Humidity", value=str(current_humidiy) + "%", inline=False)
         embed.add_field(
             name="Atmospheric Pressure",
-            value= str(current_pressure) + " hPa",
-            inline=False)      
+            value=str(current_pressure) + " hPa",
+            inline=False)
         embed.add_field(
-            name="Description",
-            value=weather_description,inline=False)
+            name="Description", value=weather_description, inline=False)
         await ctx.send(embed=embed)
-    else: 
+    else:
         embed = discord.Embed(
             title="Error", description="City Not Found", color=0xFF8080)
         await ctx.send(embed=embed)
@@ -1434,21 +1705,35 @@ async def Weather(ctx, *, City):
 @bot.command(pass_context=True)
 async def Help(ctx):
     embed = discord.Embed(
-        title="iQ", description="iQ is the ultimate moderation bot! It has everything relating to server management. ", color=random.choice(colors))
+        title="iQ",
+        description=
+        "iQ is the ultimate moderation bot! It has everything relating to server management. ",
+        color=random.choice(colors))
     await asyncio.sleep(1)
     embed.set_thumbnail(url="https://i.imgur.com/f6XzjPE.png")
     embed.set_footer(text="iQ Bot by Aevus ")
-    embed.add_field(name="Delete Messages", value="`Q Clear (amount)`", inline=False)
-    embed.add_field(name="Limit Commands to role", value="`Q Add ModRole (rolename)`", inline=False)
-    embed.add_field(name="Warn", value="`Q Warn (mention user) (reason)`", inline=False)
-    embed.add_field(name="Kick", value="`Q Kick (mention user) (reason)`", inline=False)
-    embed.add_field(name="Ban", value="`Q Ban (mention user) (reason)`", inline=False)
+    embed.add_field(
+        name="Delete Messages", value="`Q Clear (amount)`", inline=False)
+    embed.add_field(
+        name="Limit Commands to role",
+        value="`Q Add ModRole (rolename)`",
+        inline=False)
+    embed.add_field(
+        name="Warn", value="`Q Warn (mention user) (reason)`", inline=False)
+    embed.add_field(
+        name="Kick", value="`Q Kick (mention user) (reason)`", inline=False)
+    embed.add_field(
+        name="Ban", value="`Q Ban (mention user) (reason)`", inline=False)
     embed.add_field(name="Mute", value="`Q Mute (mention user)`", inline=False)
     embed.add_field(name="Weather", value="`Q Weather (City)`", inline=False)
-    embed.add_field(name="Invite Member to Server", value="`Q Invite`", inline=False)
-    embed.add_field(name="Feedback", value="`Q Feedback (Message)`", inline=False)
-    embed.add_field(name="Jukebox Commands", value="-------------------", inline=False)
-    embed.add_field(name="Play Song", value="`Q Play (Song Name)`", inline=False)
+    embed.add_field(
+        name="Invite Member to Server", value="`Q Invite`", inline=False)
+    embed.add_field(
+        name="Feedback", value="`Q Feedback (Message)`", inline=False)
+    embed.add_field(
+        name="Jukebox Commands", value="-------------------", inline=False)
+    embed.add_field(
+        name="Play Song", value="`Q Play (Song Name)`", inline=False)
     embed.add_field(name="Skip Song", value="`Q Skip`", inline=False)
     embed.add_field(name="Jukebox Queue", value="`Q Queue`", inline=False)
     embed.add_field(name="Pause Jukebox", value="`Q Pause`  ", inline=False)
@@ -1457,113 +1742,158 @@ async def Help(ctx):
     embed.add_field(name="Current Song", value="`Q Now`  ", inline=False)
     embed.add_field(name="Resume Jukebox", value="`Q Resume`  ", inline=False)
     embed.add_field(name="Shuffle Jukebox", value="`Q Shuffle`", inline=False)
-    embed.add_field(name="Force Join VC", value="`Q ForceJoin (VC Name)`", inline=False)
-    embed.add_field(name="Advanced Commands", value="-------------------", inline=False)
-    embed.add_field(name="Get Channel ID", value="`Q Get Channel`", inline=False)
-    embed.add_field(name="Set ModLog", value="`Q Set ModLog (channel id)`", inline=False)
+    embed.add_field(
+        name="Force Join VC", value="`Q ForceJoin (VC Name)`", inline=False)
+    embed.add_field(
+        name="Advanced Commands", value="-------------------", inline=False)
+    embed.add_field(
+        name="Get Channel ID", value="`Q Get Channel`", inline=False)
+    embed.add_field(
+        name="Set ModLog", value="`Q Set ModLog (channel id)`", inline=False)
     embed.add_field(name="Host Information", value="`Q Host`  ", inline=False)
     await ctx.send(embed=embed)
 
 @bot.command()
 async def Logo(ctx):
-  await ctx.send('https://i.imgur.com/f6XzjPE.png')
+    await ctx.send('https://i.imgur.com/f6XzjPE.png')
 
 @bot.command()
 async def Guild(ctx):
-  embed = discord.Embed(title=f"{ctx.guild.name}", description="iQ is the ultimate moderation bot! It has everything relating to server management. ", color=random.choice(colors))
-  await asyncio.sleep(1)
-  embed.set_thumbnail(url="https://i.imgur.com/f6XzjPE.png")
-  embed.set_footer(text="iQ Bot by Aevus : Q Help")
-  doc_ref = db.collection(u'Servers').document(f'{ctx.guild.id}')
-  if doc_ref.get().exists:
-    embed.add_field(name="Name",
-                        value=f'{ctx.guild.name}', inline=False)
-    credits = u'{}'.format(doc_ref.get({u'Credits'}).to_dict()['Credits'])
-    embed.add_field(name="Credits",
-                        value=f'{str(credits)}', inline=False)
-    modchannel = u'{}'.format(doc_ref.get({u'ModerationChannel'}).to_dict()['ModerationChannel'])
-    
-    pro = u'{}'.format(doc_ref.get({u'Pro'}).to_dict()['Pro'])
-    embed.add_field(name="Service",
-                        value=f'{str(pro)}', inline=False)
-    booster = u'{}'.format(doc_ref.get({u'Booster'}).to_dict()['Booster'])
-    if str(booster) == "None":
-      pass
-    else:
-      embed.add_field(name="Booster",
-                          value=f'<@{str(booster)}>', inline=False)
-    embed.add_field(name="Mod Channel",
-                        value=f'{str(modchannel)}', inline=False)
-    modrole = u'{}'.format(doc_ref.get({u'ModRole'}).to_dict()['ModRole'])
-    embed.add_field(name="Mod Role",
-                        value=f'{str(modrole)}', inline=False)
-    pg = u'{}'.format(doc_ref.get({u'PG'}).to_dict()['PG'])
-    embed.add_field(name="PG",
-                        value=f'{str(pg)}', inline=False)    
-  await ctx.send(embed=embed)
+    embed = discord.Embed(
+        title=f"{ctx.guild.name}",
+        description=
+        "iQ is the ultimate moderation bot! It has everything relating to server management. ",
+        color=random.choice(colors))
+    await asyncio.sleep(1)
+    embed.set_thumbnail(url="https://i.imgur.com/f6XzjPE.png")
+    embed.set_footer(text="iQ Bot by Aevus : Q Help")
+    doc_ref = db.collection(u'Servers').document(f'{ctx.guild.id}')
+    if doc_ref.get().exists:
+        embed.add_field(name="Name", value=f'{ctx.guild.name}', inline=False)
+        credits = u'{}'.format(doc_ref.get({u'Credits'}).to_dict()['Credits'])
+        embed.add_field(name="Credits", value=f'{str(credits)}', inline=False)
+        modchannel = u'{}'.format(
+            doc_ref.get({u'ModerationChannel'}).to_dict()['ModerationChannel'])
+
+        pro = u'{}'.format(doc_ref.get({u'Pro'}).to_dict()['Pro'])
+        embed.add_field(name="Service", value=f'{str(pro)}', inline=False)
+        booster = u'{}'.format(doc_ref.get({u'Booster'}).to_dict()['Booster'])
+        if str(booster) == "None":
+            pass
+        else:
+            embed.add_field(
+                name="Booster", value=f'<@{str(booster)}>', inline=False)
+        embed.add_field(
+            name="Mod Channel", value=f'{str(modchannel)}', inline=False)
+        modrole = u'{}'.format(doc_ref.get({u'ModRole'}).to_dict()['ModRole'])
+        embed.add_field(name="Mod Role", value=f'{str(modrole)}', inline=False)
+        pg = u'{}'.format(doc_ref.get({u'PG'}).to_dict()['PG'])
+        embed.add_field(name="PG", value=f'{str(pg)}', inline=False)
+    await ctx.send(embed=embed)
 
 @bot.command()
 async def Panel(ctx):
-  embed = discord.Embed(title=f"{ctx.guild.name}", description="iQ is the ultimate moderation bot! It has everything relating to server management. ", color=random.choice(colors))
-  embed.set_footer(text="iQ Bot by Aevus : Q Help")
-  doc_ref = db.collection(u'Servers').document(f'{ctx.guild.id}')
-  if doc_ref.get().exists:
-    autorole = u'{}'.format(doc_ref.get({u'AutoRole'}).to_dict()['AutoRole'])
-    if str(autorole) == "None":
-      embed.add_field(name="Auto Role",value=f'```Auto Role not set. You can do so by typing: Q set AutoRole (rolename)```', inline=True)
-    else:
-      embed.add_field(name="Auto Role",value=f'```New users will be given the {str(autorole)} upon joining.```', inline=True)
+    embed = discord.Embed(
+        title=f"{ctx.guild.name}",
+        description=
+        "iQ is the ultimate moderation bot! It has everything relating to server management. ",
+        color=random.choice(colors))
+    embed.set_footer(text="iQ Bot by Aevus : Q Help")
+    doc_ref = db.collection(u'Servers').document(f'{ctx.guild.id}')
+    if doc_ref.get().exists:
+        autorole = u'{}'.format(
+            doc_ref.get({u'AutoRole'}).to_dict()['AutoRole'])
+        if str(autorole) == "None":
+            embed.add_field(
+                name="Auto Role",
+                value=
+                f'```Auto Role not set. You can do so by typing: Q set AutoRole (rolename)```',
+                inline=True)
+        else:
+            embed.add_field(
+                name="Auto Role",
+                value=
+                f'```New users will be given the {str(autorole)} upon joining.```',
+                inline=True)
 
-    modlog = u'{}'.format(doc_ref.get({u'ModerationChannel'}).to_dict()['ModerationChannel'])
-    if str(modlog) == "None":
-      embed.add_field(name="Mod Log",value=f'```Mod Log not set. You can do so by typing: Q set ModLog (Channel ID)```', inline=True)
-    else:
-      embed.add_field(name="Mod Log",value=f'```All moderation commands will by logged in <#{str(modlog)}>```', inline=True)
+        modlog = u'{}'.format(
+            doc_ref.get({u'ModerationChannel'}).to_dict()['ModerationChannel'])
+        if str(modlog) == "None":
+            embed.add_field(
+                name="Mod Log",
+                value=
+                f'```Mod Log not set. You can do so by typing: Q set ModLog (Channel ID)```',
+                inline=True)
+        else:
+            embed.add_field(
+                name="Mod Log",
+                value=
+                f'```All moderation commands will by logged in <#{str(modlog)}>```',
+                inline=True)
 
-    modrole = u'{}'.format(doc_ref.get({u'ModRole'}).to_dict()['ModRole'])
-    if str(modrole) == "None":
-      embed.add_field(name="Mod Role",value=f'```Mod Role not set. You can do so by typing: Q set ModRole (role name)```', inline=True)
-    else:
-      embed.add_field(name="Mod Role",value=f'```The {str(modrole)} role will be reqired to perform moderation commands.```', inline=True)
+        modrole = u'{}'.format(doc_ref.get({u'ModRole'}).to_dict()['ModRole'])
+        if str(modrole) == "None":
+            embed.add_field(
+                name="Mod Role",
+                value=
+                f'```Mod Role not set. You can do so by typing: Q set ModRole (role name)```',
+                inline=True)
+        else:
+            embed.add_field(
+                name="Mod Role",
+                value=
+                f'```The {str(modrole)} role will be reqired to perform moderation commands.```',
+                inline=True)
 
-    welcomemessage = u'{}'.format(doc_ref.get({u'WelcomeMessage'}).to_dict()['WelcomeMessage'])
-    if str(welcomemessage) == "None":
-      embed.add_field(name="Welcome Message",value=f'```Welcome Message not set. You can do so by typing: Q set WelcomeMessage (message)```', inline=True)
-    else:
-      embed.add_field(name="Welcome Message",value=f'```{str(welcomemessage)}```', inline=True)
+        welcomemessage = u'{}'.format(
+            doc_ref.get({u'WelcomeMessage'}).to_dict()['WelcomeMessage'])
+        if str(welcomemessage) == "None":
+            embed.add_field(
+                name="Welcome Message",
+                value=
+                f'```Welcome Message not set. You can do so by typing: Q set WelcomeMessage (message)```',
+                inline=True)
+        else:
+            embed.add_field(
+                name="Welcome Message",
+                value=f'```{str(welcomemessage)}```',
+                inline=True)
 
-    pro = u'{}'.format(doc_ref.get({u'Pro'}).to_dict()['Pro'])
-    booster = u'{}'.format(doc_ref.get({u'Booster'}).to_dict()['Booster'])
-    if str(pro) == "Base":
-      embed.add_field(name="iQ Pro",value=f'```This server is missing many fun commands. Boost this server today!```', inline=True)
-    else:
-      embed.add_field(name="iQ Pro",value=f'```This server is boosted by <@{str(booster)}>```', inline=True)
+        pro = u'{}'.format(doc_ref.get({u'Pro'}).to_dict()['Pro'])
+        booster = u'{}'.format(doc_ref.get({u'Booster'}).to_dict()['Booster'])
+        if str(pro) == "Base":
+            embed.add_field(
+                name="iQ Pro",
+                value=
+                f'```This server is missing many fun commands. Boost this server today!```',
+                inline=True)
+        else:
+            embed.add_field(
+                name="iQ Pro",
+                value=f'```This server is boosted by <@{str(booster)}>```',
+                inline=True)
 
-  
-
-  await ctx.send(embed=embed)
-
+    await ctx.send(embed=embed)
 
 @bot.event
 async def on_command_error(ctx, error):
-  if isinstance(error, commands.errors.CommandError):
-    await ctx.send(f'```{error}```')
-  logzero.logfile("rotating-logfile.log", maxBytes=1e6, backupCount=3)
-  # Log messages
-  logger.error(f'{ctx.author.id}: {error}')
-  print(f'{ctx.author.id}: {error}')
-
+    if isinstance(error, commands.errors.CommandError):
+        await ctx.send(f'```{error}```')
+    logzero.logfile("rotating-logfile.log", maxBytes=1e6, backupCount=3)
+    # Log messages
+    logger.error(f'{ctx.author.id}: {error}')
+    print(f'{ctx.author.id}: {error}')
 
 
 extensions = [
-  #'music'  # Same name as it would be if you were importing it
+    #'music'  # Same name as it would be if you were importing it
 ]
 
 if __name__ == '__main__':  # Ensures this is the file being ran
-  for extension in extensions:
-    bot.load_extension(extension)  # Loades every extension.
+    for extension in extensions:
+        bot.load_extension(extension)  # Loades every extension.
 
 bot.add_cog(Music(bot))
 keep_alive()
 token = os.environ.get("DISCORD_BOT_SECRET")
-bot.run(token)    
+bot.run(token)
