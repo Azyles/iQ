@@ -624,6 +624,7 @@ async def on_guild_join(guild):
             u'WelcomeMessage': 'None',
             u'ModerationChannel': 'None',
             u'AutoRole': 'None',
+            u'Claimed': dt_string,
             u'Warns': 3,
             u'Joined': dt_string,
         })
@@ -631,6 +632,62 @@ async def on_guild_join(guild):
             await guild.create_role(name="Muted")
         except:
             pass
+    
+    for member in guild.members:
+        docs = db.collection(u'UserData').document(str(member.id))
+        if docs.get().exists:
+            pass
+        else:
+            if member.bot:
+                pass
+            else:
+                dt_string = datetime.now().strftime("%d/%m/%Y")
+                try:
+                  docs.set({
+                    u'ID': str(guild.id),
+                    u'PG': u'No',
+                    u'Pro': u'Base',
+                    u'Booster': u'None',
+                    u'Credits': 10,
+                    u'ModRole': 'None',
+                    u'WelcomeMessage': 'None',
+                    u'ModerationChannel': 'None',
+                    u'AutoRole': 'None',
+                    u'Claimed': dt_string,
+                    u'Warns': 3,
+                    u'Joined': dt_string,
+                  })
+                except: 
+                  pass
+
+
+
+@bot.command()
+async def setupacount(ctx):
+    for member in ctx.guild.members:
+        docs = db.collection(u'UserData').document(str(member.id))
+        if docs.get().exists:
+            pass
+        else:
+            if member.bot:
+                pass
+            else:
+                dt_string = datetime.now().strftime("%d/%m/%Y")
+                docs.set({
+                    u'ID': str(ctx.guild.id),
+                    u'PG': u'No',
+                    u'Pro': u'Base',
+                    u'Booster': u'None',
+                    u'Credits': 10,
+                    u'ModRole': 'None',
+                    u'WelcomeMessage': 'None',
+                    u'ModerationChannel': 'None',
+                    u'AutoRole': 'None',
+                    u'Claimed': dt_string,
+                    u'Warns': 3,
+                    u'Joined': dt_string,
+                })
+
 
 @bot.command()
 async def ping(ctx):
@@ -1389,26 +1446,6 @@ async def About(ctx):
         joined = u'{}'.format(doc_ref.get({u'Joined'}).to_dict()['Joined'])
         embed.add_field(name="Joined", value=f'{str(joined)}', inline=False)
     await ctx.send(embed=embed)
-
-@bot.command()
-async def setupacount(ctx):
-    for member in ctx.guild.members:
-        docs = db.collection(u'UserData').document(str(member.id))
-        if docs.get().exists:
-            pass
-        else:
-            if member.bot:
-                pass
-            else:
-                dt_string = datetime.now().strftime("%d/%m/%Y")
-                docs.set({
-                    u'ID': str(member.id),
-                    u'Pro': u'Base',
-                    u'Boosts': 0,
-                    u'Level': 1,
-                    u'Cash': 100,
-                    u'Joined': dt_string,
-                })
 
 @bot.event
 async def on_message(message):
