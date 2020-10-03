@@ -31,7 +31,7 @@ firebase_admin.initialize_app(cred)
 
 city_name = 'Monterey'
 api_key = "549b0eaf0ba1e27619cf96fb0ba32a1b"
-base_url = "http://api.openweathermap.org/data/2.5/weather?"
+base_url = "http://api.openweathermap.org/data/ 2.5/weather?"
 
 db = firestore.client()
 
@@ -199,9 +199,7 @@ class Song:
         embed = (discord.Embed(
             title='Now Playing',
             description='```\n{0.source.title}\n```'.format(self),
-            color=random.choice(colors)).add_field(
-                name='Duration', value=self.source.duration).add_field(
-                    name='Requested by', value=self.requester.name))
+            color=random.choice(colors)))
 
         return embed
 
@@ -356,7 +354,6 @@ class Music(commands.Cog):
         ctx.voice_state.voice = await destination.connect()
 
     @commands.command(name='ForceJoin')
-    @commands.has_permissions(manage_guild=True)
     async def _summon(self,
                       ctx: commands.Context,
                       *,
@@ -379,7 +376,6 @@ class Music(commands.Cog):
         ctx.voice_state.voice = await destination.connect()
 
     @commands.command(name='leave', aliases=['disconnect'])
-    @commands.has_permissions(manage_guild=True)
     async def _leave(self, ctx: commands.Context):
         """Clears the queue and leaves the voice channel."""
 
@@ -406,7 +402,6 @@ class Music(commands.Cog):
         await ctx.send(embed=ctx.voice_state.current.create_embed())
 
     @commands.command(name='pause')
-    @commands.has_permissions(manage_guild=True)
     async def _pause(self, ctx: commands.Context):
         """Pauses the currently playing song."""
 
@@ -415,7 +410,6 @@ class Music(commands.Cog):
             await ctx.message.add_reaction('⏯')
 
     @commands.command(name='resume')
-    @commands.has_permissions(manage_guild=True)
     async def _resume(self, ctx: commands.Context):
         """Resumes a currently paused song."""
 
@@ -424,7 +418,6 @@ class Music(commands.Cog):
             await ctx.message.add_reaction('⏯')
 
     @commands.command(name='stop')
-    @commands.has_permissions(manage_guild=True)
     async def _stop(self, ctx: commands.Context):
         """Stops playing song and clears the queue."""
 
@@ -539,22 +532,21 @@ class Music(commands.Cog):
         if not ctx.voice_state.voice:
             await ctx.invoke(self._join)
 
-        async with ctx.typing():
-            try:
-                source = await YTDLSource.create_source(
-                    ctx, search, loop=self.bot.loop)
-            except YTDLError as e:
-                await ctx.send(
-                    'An error occurred while processing this request: {}'.
-                    format(str(e)))
-            else:
-                song = Song(source)
+        try:
+            source = await YTDLSource.create_source(
+                ctx, search, loop=self.bot.loop)
+        except YTDLError as e:
+            await ctx.send(
+                'An error occurred while processing this request: {}'.
+                format(str(e)))
+        else:
+            song = Song(source)
 
-                await ctx.voice_state.songs.put(song)
-                embed = embed = discord.Embed(
-                    description='```Added {} to queue```'.format(str(source)),
-                    color=random.choice(colors))
-                await ctx.send(embed=embed)
+            await ctx.voice_state.songs.put(song)
+            embed = embed = discord.Embed(
+                description='```Added {} to queue```'.format(str(source)),
+                color=random.choice(colors))
+            await ctx.send(embed=embed)
 
     @_join.before_invoke
     @_play.before_invoke
@@ -568,7 +560,6 @@ class Music(commands.Cog):
                 raise commands.CommandError(
                     '`Bot is already in a voice channel.`')
 
-
 @bot.event
 async def on_ready():
     await bot.change_presence(
@@ -579,7 +570,6 @@ async def on_ready():
     #  if guild.name == '743495325968498689':
     #    break
     start = time.time()
-
 
 '''
 @bot.event
@@ -613,7 +603,6 @@ async def on_message(message):
     pass
   await bot.process_commands(message)
 '''
-
 
 @bot.event
 async def on_guild_join(guild):
@@ -684,7 +673,6 @@ async def Get(ctx, choice='none', field='none'):
         await ctx.send(
             f'`{ctx.message.channel.name}: {ctx.message.channel.id}`')
 
-
 @bot.command()
 async def ModRole(ctx, field='None',rolename = "iQ-Mod"):
   if field == "None":
@@ -721,11 +709,11 @@ async def ModLog(ctx, field='None',modname = "iQ-Log"):
         color=random.choice(colors))
       await ctx.send(embed=embed)
   elif field == "Create" or "Create":
+        doc_ref = db.collection(u'Servers').document(str(ctx.message.guild.id))
         doc_ref.set({
             u'ModerationChannel': str(modname),
         }, merge=True)
         await ctx.send('`Mod Log Successfully Set`')
-
 
 @bot.command()
 async def AutoRole(ctx, field='None',rolename = "Guest"):
@@ -741,6 +729,7 @@ async def AutoRole(ctx, field='None',rolename = "Guest"):
         color=random.choice(colors))
       await ctx.send(embed=embed)
   elif field == "Create" or "Create":
+        doc_ref = db.collection(u'Servers').document(str(ctx.message.guild.id))
         doc_ref.set({
             u'AutoRole': str(rolename),
         }, merge=True)
@@ -760,11 +749,11 @@ async def WelcomeMessage(ctx, field='None',wmessage = "None"):
         color=random.choice(colors))
       await ctx.send(embed=embed)
   elif field == "Create" or "Create":
+        doc_ref = db.collection(u'Servers').document(str(ctx.message.guild.id))
         doc_ref.set({
             u'WelcomeMessage': str(wmessage),
         }, merge=True)
         await ctx.send('`Welcome Message Successfully Set`')        
-
 
 @bot.command()
 async def Set(ctx, choice='none', *, field='none'):
@@ -1264,7 +1253,7 @@ async def on_member_join(member):
                     await channel.send(embed=embed)
 
 @bot.command()
-async def coupon(ctx, actype='AccPro', count=0):
+async def coupon(ctx, actype='GuildPro', count=0):
     tokennn = str(uuid.uuid4())
     docs = db.collection(u'Coupon').document(str(tokennn))
     dt_string = datetime.now().strftime("%d/%m/%Y")
@@ -1395,8 +1384,8 @@ async def About(ctx):
         embed.add_field(name="Level", value=f'{str(level)}', inline=False)
         boost = u'{}'.format(doc_ref.get({u'Boosts'}).to_dict()['Boosts'])
         embed.add_field(name="Boosts", value=f'{str(boost)}', inline=False)
-        pro = u'{}'.format(doc_ref.get({u'Pro'}).to_dict()['Pro'])
-        embed.add_field(name="Account Type", value=f'{str(pro)}', inline=False)
+        #pro = u'{}'.format(doc_ref.get({u'Pro'}).to_dict()['Pro'])
+        #embed.add_field(name="Account Type", value=f'{str(pro)}', inline=False)
         joined = u'{}'.format(doc_ref.get({u'Joined'}).to_dict()['Joined'])
         embed.add_field(name="Joined", value=f'{str(joined)}', inline=False)
     await ctx.send(embed=embed)
@@ -1754,19 +1743,28 @@ async def Help(ctx):
     embed.add_field(
         name="Delete Messages", value="`Q Clear (amount)`", inline=False)
     embed.add_field(
-        name="Limit Commands to role",
-        value="`Q Add ModRole (rolename)`",
-        inline=False)
-    embed.add_field(
         name="Warn", value="`Q Warn (mention user) (reason)`", inline=False)
     embed.add_field(
         name="Kick", value="`Q Kick (mention user) (reason)`", inline=False)
     embed.add_field(
         name="Ban", value="`Q Ban (mention user) (reason)`", inline=False)
-    embed.add_field(name="Mute", value="`Q Mute (mention user)`", inline=False)
+    embed.add_field(name="Mute", value="`Q Mute (mention user) (Reason)`", inline=False)
+    embed.add_field(name="UnMute", value="`Q UnMute (mention user)`", inline=False)
+    
     embed.add_field(name="Weather", value="`Q Weather (City)`", inline=False)
     embed.add_field(
         name="Invite Member to Server", value="`Q Invite`", inline=False)
+    embed.add_field(name="AutoRole", value="`Q Autorole`", inline=False)
+    embed.add_field(name="ModLog", value="`Q ModLog`", inline=False)
+    embed.add_field(name="Welcome Message", value="`Q WelcomeMessage`", inline=False)
+    embed.add_field(name="Mod Role", value="`Q ModRole`", inline=False)
+    embed.add_field(name="Claim", value="`Q Claim (code)`", inline=False)
+    embed.add_field(name="Boost", value="`Q Boost`", inline=False)
+    embed.add_field(name="View Account", value="`Q About`", inline=False)
+    embed.add_field(name="Server Info", value="`Q Guild`", inline=False)
+    embed.add_field(name="Server Panel", value="`Q Panel`", inline=False)
+    embed.add_field(name="Server Members", value="`Q Members`", inline=False)
+    
     embed.add_field(
         name="Feedback", value="`Q Feedback (Message)`", inline=False)
     embed.add_field(
@@ -1787,8 +1785,6 @@ async def Help(ctx):
         name="Advanced Commands", value="-------------------", inline=False)
     embed.add_field(
         name="Get Channel ID", value="`Q Get Channel`", inline=False)
-    embed.add_field(
-        name="Set ModLog", value="`Q Set ModLog (channel id)`", inline=False)
     embed.add_field(name="Host Information", value="`Q Host`  ", inline=False)
     await ctx.send(embed=embed)
 
