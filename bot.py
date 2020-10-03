@@ -624,7 +624,6 @@ async def on_guild_join(guild):
             u'WelcomeMessage': 'None',
             u'ModerationChannel': 'None',
             u'AutoRole': 'None',
-            u'Claimed': dt_string,
             u'Warns': 3,
             u'Joined': dt_string,
         })
@@ -642,20 +641,15 @@ async def on_guild_join(guild):
                 pass
             else:
                 dt_string = datetime.now().strftime("%d/%m/%Y")
-                try:
+                try:     
                   docs.set({
-                    u'ID': str(guild.id),
-                    u'PG': u'No',
-                    u'Pro': u'Base',
-                    u'Booster': u'None',
-                    u'Credits': 10,
-                    u'ModRole': 'None',
-                    u'WelcomeMessage': 'None',
-                    u'ModerationChannel': 'None',
-                    u'AutoRole': 'None',
-                    u'Claimed': dt_string,
-                    u'Warns': 3,
-                    u'Joined': dt_string,
+                      u'ID': str(member.id),
+                      u'Pro': u'Base',
+                      u'Boosts': 0,
+                      u'Level': 1,
+                      u'Cash': 100,
+                      u'Joined': dt_string,
+                      u'Claimed': dt_string,
                   })
                 except: 
                   pass
@@ -672,22 +666,44 @@ async def setupacount(ctx):
             if member.bot:
                 pass
             else:
+                print(f"Creating account for: {member.name}")
                 dt_string = datetime.now().strftime("%d/%m/%Y")
                 docs.set({
-                    u'ID': str(ctx.guild.id),
-                    u'PG': u'No',
-                    u'Pro': u'Base',
-                    u'Booster': u'None',
-                    u'Credits': 10,
-                    u'ModRole': 'None',
-                    u'WelcomeMessage': 'None',
-                    u'ModerationChannel': 'None',
-                    u'AutoRole': 'None',
-                    u'Claimed': dt_string,
-                    u'Warns': 3,
-                    u'Joined': dt_string,
+                      u'ID': str(member.id),
+                      u'Pro': u'Base',
+                      u'Boosts': 0,
+                      u'Level': 1,
+                      u'Cash': 100,
+                      u'Joined': dt_string,
+                      u'Claimed': dt_string,
                 })
+                print(f"{member.name} is in")
 
+@bot.command()
+async def daily(ctx):
+  docs = db.collection(u'UserData').document(str(ctx.author.id))
+  claimed = u'{}'.format(docs.get({u'Claimed'}).to_dict()['Claimed']) 
+  dt_string = datetime.now().strftime("%d/%m/%Y")
+  if str(claimed) == dt_string:
+    await ctx.send('`You can only claim every 24 hours!`')
+  else:  
+    cash = u'{}'.format(docs.get({u'Cash'}).to_dict()['Cash'])
+    level = u'{}'.format(docs.get({u'Level'}).to_dict()['Level'])
+    if int(level) < 11:
+      earning = random.randrange(0, 11)
+    else:
+      earning = random.randrange(0, int(level))
+    cash = int(cash) + earning
+    docs.set({
+      u'Cash': cash,
+      u'Claimed': dt_string,
+    },merge=True)
+    embed = discord.Embed(
+        title="Daily Claimed",
+        description=f'You were paid ${str(earning)}. Check back in 24 hours!',
+        color=random.choice(colors))
+    await ctx.send(embed=embed)
+    
 
 @bot.command()
 async def ping(ctx):
@@ -1254,6 +1270,7 @@ async def on_member_join(member):
                 u'Level': 1,
                 u'Cash': 100,
                 u'Joined': dt_string,
+                u'Claimed': dt_string,
             })
             autorole = u'{}'.format(
                 guilddocs.get({u'AutoRole'}).to_dict()['AutoRole'])
