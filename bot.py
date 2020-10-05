@@ -988,6 +988,18 @@ async def About(ctx):
         #embed.add_field(name="Account Type", value=f'{str(pro)}', inline=False)
         joined = u'{}'.format(doc_ref.get({u'Joined'}).to_dict()['Joined'])
         embed.add_field(name="Joined", value=f'{str(joined)}', inline=False)
+        users_ref = db.collection("UserData").document(str(ctx.author.id)).collection(u"Stocks")
+        docs = users_ref.stream()
+        for doc in docs:
+            stock = doc.id
+            r = requests.get('https://finnhub.io/api/v1/quote?symbol=' +
+                             str(stock) + '&token=bre3nkfrh5rckh454te0')
+            j = r.json()
+            sharevalue = j['c']
+            stockRef = db.collection("UserData").document(str(ctx.author.id)).collection(u"Stocks").document(str(stock))
+            sharesownded = u'{}'.format(stockRef.get({u'Shares'}).to_dict()['Shares'])
+            shareownedvalue = int(sharesownded) * int(sharevalue)
+            embed.add_field(name=f"{str(stock)}", value=f'${str(shareownedvalue)}', inline=False)
     await ctx.send(embed=embed)
 
 
@@ -1595,30 +1607,6 @@ async def Boost(ctx, upgradetype="Guild"):
                     f"{ctx.guild.name} upgraded the server to PRO! Thanks to {ctx.author.mention}"
                 )
 
-@bot.command()
-async def About(ctx):
-    embed = discord.Embed(
-        title=f"{ctx.author.name}",
-        description=
-        "iQ is the ultimate moderation bot! It has everything relating to server management. ",
-        color=random.choice(colors))
-    await asyncio.sleep(1)
-    embed.set_thumbnail(url="https://i.imgur.com/f6XzjPE.png")
-    embed.set_footer(text="iQ Bot by Aevus : Q Help")
-    doc_ref = db.collection(u'UserData').document(f'{ctx.author.id}')
-    if doc_ref.get().exists:
-        embed.add_field(name="Name", value=f'{ctx.author.name}', inline=False)
-        cash = u'{}'.format(doc_ref.get({u'Cash'}).to_dict()['Cash'])
-        embed.add_field(name="Cash", value=f'{str(cash)}', inline=False)
-        level = u'{}'.format(doc_ref.get({u'Level'}).to_dict()['Level'])
-        embed.add_field(name="Level", value=f'{str(level)}', inline=False)
-        boost = u'{}'.format(doc_ref.get({u'Boosts'}).to_dict()['Boosts'])
-        embed.add_field(name="Boosts", value=f'{str(boost)}', inline=False)
-        #pro = u'{}'.format(doc_ref.get({u'Pro'}).to_dict()['Pro'])
-        #embed.add_field(name="Account Type", value=f'{str(pro)}', inline=False)
-        joined = u'{}'.format(doc_ref.get({u'Joined'}).to_dict()['Joined'])
-        embed.add_field(name="Joined", value=f'{str(joined)}', inline=False)
-    await ctx.send(embed=embed)
 
 @bot.event
 async def on_message(message):
