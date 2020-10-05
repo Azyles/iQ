@@ -62,9 +62,9 @@ class YTDLError(Exception):
 
 class YTDLSource(discord.PCMVolumeTransformer):
     YTDL_OPTIONS = {
-        'format': 'bestaudio/best',
+        'format': 'worstaudio/worst',
         'extractaudio': True,
-        'audioformat': 'mp3',
+        'audioformat': 'wav',
         'outtmpl': '%(extractor)s-%(id)s-%(title)s.%(ext)s',
         'restrictfilenames': True,
         'noplaylist': True,
@@ -700,7 +700,7 @@ async def daily(ctx):
     },merge=True)
     embed = discord.Embed(
         title="Daily Claimed",
-        description=f'You were paid ${str(earning)}. Check back in 24 hours!',
+        description=f'You were paid ${str(earning)}. Check back tomorrow!',
         color=random.choice(colors))
     await ctx.send(embed=embed)
     
@@ -864,6 +864,81 @@ async def Set(ctx, choice='none', *, field='none'):
 @bot.command()
 async def server(ctx):
     await ctx.send(ctx.guild.id)
+
+@bot.command()
+async def Buy(ctx, stocksymbol: str, amount: int):
+  q = requests.get('https://www.alphavantage.co/query?function=SYMBOL_SEARCH&keywords='+stocksymbol+'&apikey=QWOU4B1BS6VHRKOF')
+  f = q.json()
+  fe = f["bestMatches"][0]
+  fn = fe["2. name"]
+  x = fe["1. symbol"]
+  r = requests.get('https://finnhub.io/api/v1/quote?symbol=' + x +
+                     '&token=bre3nkfrh5rckh454te0')
+  j = r.json()
+  if "error" in j:
+    await ctx.send(j['error'])
+  #defs
+  docs = db.collection(u'UserData').document(str(ctx.author.id))
+  cash = u'{}'.format(docs.get({u'Cash'}).to_dict()['Cash'])
+  shareprice = j["c"]
+  if amount < int(shareprice):
+    await ctx.send(f"`Purchase amount must be more than share price`")
+  else:
+    if int(cash) < amount:
+      await ctx.send("`Purchase amount exceeds balance`")
+    else:
+      stockdoc = db.collection(u'UserData').document(str(ctx.author.id)).collection(u"Stocks").document(str(x))
+      sharesbought = amount/int(shareprice)
+      sharesbought = round(sharesbought)
+      spent = sharesbought * int(shareprice)
+      moneyafterpurchase = int(cash) - spent
+      docs.set({
+              u'Cash': int(moneyafterpurchase),
+      }, merge=True)
+      if stockdoc.get().exists:
+        sharesowned = u'{}'.format(stockdoc.get({u'Shares'}).to_dict()['Shares'])
+        sharesowned = sharesbought + int(sharesowned)
+        stockdoc.set({
+              u'Shares': str(sharesowned),
+        }, merge=True)
+        await ctx.send(f'`{sharesbought} shares of {str(fn)} bought at {str(shareprice)} `')
+      else:
+        stockdoc.set({
+              u'Shares': str(sharesbought),
+        }, merge=True)
+        await ctx.send(f'`{sharesbought} shares of {str(fn)} bought at {str(shareprice)} `')
+    
+    
+
+@bot.command()
+async def Stock(ctx, stocksymbol: str):
+    q = requests.get('https://www.alphavantage.co/query?function=SYMBOL_SEARCH&keywords='+stocksymbol+'&apikey=QWOU4B1BS6VHRKOF')
+    f = q.json()
+    fe = f["bestMatches"][0]
+    fn = fe["2. name"]
+    x = fe["1. symbol"]
+    r = requests.get('https://finnhub.io/api/v1/quote?symbol=' + x +
+                     '&token=bre3nkfrh5rckh454te0')
+    j = r.json()
+    if "error" in j:
+      await ctx.send(j['error'])
+    embed = discord.Embed(
+        title=f"{str(fn)}", description="Stock Analysis", color=random.choice(colors))
+    embed.set_author(
+        name=f"Invite Synapse!",
+        url="https://discord.com/oauth2/authorize?client_id=712515532682952735&permissions=457792&scope=bot",
+        icon_url=
+        "https://i.imgur.com/EbVR81i.png"
+    )
+    embed.set_thumbnail(url="https://i.imgur.com/EbVR81i.png")
+    embed.add_field(name="Current Price", value=j["c"], inline=False)
+    embed.add_field(name="Open Price", value=j["o"], inline=False)
+    embed.add_field(name="High Price", value=j["h"], inline=False)
+    embed.add_field(name="Low Price", value=j["l"], inline=False)
+    embed.add_field(name="Previous Close Price", value=j["pc"], inline=False)
+    embed.set_footer(text="Command by Synapse Bot. Check out Sybapse for more info!")
+    await ctx.send(embed=embed)
+
 
 @bot.command()
 async def clear(ctx, amount=5):
@@ -1682,6 +1757,8 @@ async def Host(ctx):
         name="Guild Members", value=str(true_member_count), inline=False)
     embed.set_footer(text="iQ Bot by Aevus : Q Help")
     await ctx.send(embed=embed)
+
+
 
 @bot.command()
 async def Members(ctx):
