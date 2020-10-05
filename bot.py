@@ -924,14 +924,14 @@ async def Sell(ctx, stocksymbol: str, amount: int):
   sharessold = amount/int(shareprice)
   sharessold = round(sharessold)
   cashearned = int(sharessold) * int(shareprice)
-  if amount < int(shareprice):
+  if int(amount) < int(shareprice):
     await ctx.send(f"`Sell amount must be more than share price`")
   else:
     stockdoc = db.collection(u'UserData').document(str(ctx.author.id)).collection(u"Stocks").document(str(x))
     if stockdoc.get().exists:
       sharesowned = u'{}'.format(stockdoc.get({u'Shares'}).to_dict()['Shares'])
       if int(sharesowned) < int(sharessold):
-        if sharesowned < 1:
+        if int(sharesowned) < 1:
           await ctx.send('`You dont own any shares of the requested stock`')
         else:
           while int(sharesowned) < int(sharessold):
@@ -964,6 +964,32 @@ async def Sell(ctx, stocksymbol: str, amount: int):
         await ctx.send(f'`{sharessold} shares sold`')
     else:
       await ctx.send('`You dont own any shares of the requested stock`')
+
+@bot.command()
+async def About(ctx):
+    embed = discord.Embed(
+        title=f"{ctx.author.name}",
+        description=
+        "iQ is the ultimate moderation bot! It has everything relating to server management. ",
+        color=random.choice(colors))
+    await asyncio.sleep(1)
+    embed.set_thumbnail(url="https://i.imgur.com/f6XzjPE.png")
+    embed.set_footer(text="iQ Bot by Aevus : Q Help")
+    doc_ref = db.collection(u'UserData').document(f'{ctx.author.id}')
+    if doc_ref.get().exists:
+        embed.add_field(name="Name", value=f'{ctx.author.name}', inline=False)
+        cash = u'{}'.format(doc_ref.get({u'Cash'}).to_dict()['Cash'])
+        embed.add_field(name="Cash", value=f'{str(cash)}', inline=False)
+        level = u'{}'.format(doc_ref.get({u'Level'}).to_dict()['Level'])
+        embed.add_field(name="Level", value=f'{str(level)}', inline=False)
+        boost = u'{}'.format(doc_ref.get({u'Boosts'}).to_dict()['Boosts'])
+        embed.add_field(name="Boosts", value=f'{str(boost)}', inline=False)
+        #pro = u'{}'.format(doc_ref.get({u'Pro'}).to_dict()['Pro'])
+        #embed.add_field(name="Account Type", value=f'{str(pro)}', inline=False)
+        joined = u'{}'.format(doc_ref.get({u'Joined'}).to_dict()['Joined'])
+        embed.add_field(name="Joined", value=f'{str(joined)}', inline=False)
+    await ctx.send(embed=embed)
+
 
 @bot.command()
 async def Stock(ctx, stocksymbol: str):
