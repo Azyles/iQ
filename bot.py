@@ -899,16 +899,71 @@ async def Buy(ctx, stocksymbol: str, amount: int):
         sharesowned = u'{}'.format(stockdoc.get({u'Shares'}).to_dict()['Shares'])
         sharesowned = sharesbought + int(sharesowned)
         stockdoc.set({
-              u'Shares': str(sharesowned),
+              u'Shares': int(sharesowned),
         }, merge=True)
         await ctx.send(f'`{sharesbought} shares of {str(fn)} bought at {str(shareprice)} `')
       else:
         stockdoc.set({
-              u'Shares': str(sharesbought),
+              u'Shares': int(sharesbought),
         }, merge=True)
         await ctx.send(f'`{sharesbought} shares of {str(fn)} bought at {str(shareprice)} `')
     
-    
+@bot.command()
+async def Sell(ctx, stocksymbol: str, amount: int):
+  q = requests.get('https://www.alphavantage.co/query?function=SYMBOL_SEARCH&keywords='+stocksymbol+'&apikey=QWOU4B1BS6VHRKOF')
+  f = q.json()
+  fe = f["bestMatches"][0]
+  fn = fe["2. name"]
+  x = fe["1. symbol"]
+  r = requests.get('https://finnhub.io/api/v1/quote?symbol=' + x +
+                     '&token=bre3nkfrh5rckh454te0')
+  j = r.json()
+  if "error" in j:
+    await ctx.send(j['error'])
+  shareprice = j["c"]
+  sharessold = amount/int(shareprice)
+  sharessold = round(sharessold)
+  cashearned = int(sharessold) * int(shareprice)
+  if amount < int(shareprice):
+    await ctx.send(f"`Sell amount must be more than share price`")
+  else:
+    stockdoc = db.collection(u'UserData').document(str(ctx.author.id)).collection(u"Stocks").document(str(x))
+    if stockdoc.get().exists:
+      sharesowned = u'{}'.format(stockdoc.get({u'Shares'}).to_dict()['Shares'])
+      if int(sharesowned) < int(sharessold):
+        if sharesowned < 1:
+          await ctx.send('`You dont own any shares of the requested stock`')
+        else:
+          while int(sharesowned) < int(sharessold):
+            sharessold = sharessold - 1
+          cashearned = int(sharessold) * int(shareprice)
+          sharesowned = int(sharesowned) - sharessold
+          docs = db.collection(u'UserData').document(str(ctx.author.id))
+          cash = u'{}'.format(docs.get({u'Cash'}).to_dict()['Cash'])
+          cashearned = cashearned + int(cash)
+          docs.set({
+                  u'Cash': int(cashearned),
+          }, merge=True)
+          
+          stockdoc.set({
+                  u'Shares': int(sharesowned),
+          }, merge=True)
+          await ctx.send(f'`{sharessold} shares sold`')
+      else:  
+        sharesowned = int(sharesowned) - sharessold
+        docs = db.collection(u'UserData').document(str(ctx.author.id))
+        cash = u'{}'.format(docs.get({u'Cash'}).to_dict()['Cash'])
+        cashearned = cashearned + int(cash)
+        docs.set({
+                u'Cash': int(cashearned),
+        }, merge=True)
+        
+        stockdoc.set({
+                u'Shares': int(sharesowned),
+        }, merge=True)
+        await ctx.send(f'`{sharessold} shares sold`')
+    else:
+      await ctx.send('`You dont own any shares of the requested stock`')
 
 @bot.command()
 async def Stock(ctx, stocksymbol: str):
