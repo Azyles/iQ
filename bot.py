@@ -966,7 +966,7 @@ async def Sell(ctx, stocksymbol: str, amount: int):
       await ctx.send('`You dont own any shares of the requested stock`')
 
 @bot.command()
-async def About(ctx):
+async def Profile(ctx):
     embed = discord.Embed(
         title=f"{ctx.author.name}",
         description=
