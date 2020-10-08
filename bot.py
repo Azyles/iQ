@@ -654,8 +654,6 @@ async def on_guild_join(guild):
                 except: 
                   pass
 
-
-
 @bot.command()
 async def setupacount(ctx):
     for member in ctx.guild.members:
@@ -704,11 +702,14 @@ async def daily(ctx):
         color=random.choice(colors))
     await ctx.send(embed=embed)
     
-
 @bot.command()
 async def ping(ctx):
     ping = round(bot.latency * 1000)
     await ctx.send(f"{ctx.author.mention} The ping of this bot is {ping} ms")
+
+@bot.command()
+async def Play(ctx):
+    await ctx.send("Music Commands disabled until further notice!")
 
 @bot.command()
 async def Add(ctx, choice='none', field='Mod'):
@@ -867,76 +868,97 @@ async def server(ctx):
 
 @bot.command()
 async def Buy(ctx, stocksymbol: str, amount: int):
-  q = requests.get('https://www.alphavantage.co/query?function=SYMBOL_SEARCH&keywords='+stocksymbol+'&apikey=QWOU4B1BS6VHRKOF')
-  f = q.json()
-  fe = f["bestMatches"][0]
-  fn = fe["2. name"]
-  x = fe["1. symbol"]
-  r = requests.get('https://finnhub.io/api/v1/quote?symbol=' + x +
-                     '&token=bre3nkfrh5rckh454te0')
-  j = r.json()
-  if "error" in j:
-    await ctx.send(j['error'])
-  #defs
-  docs = db.collection(u'UserData').document(str(ctx.author.id))
-  cash = u'{}'.format(docs.get({u'Cash'}).to_dict()['Cash'])
-  shareprice = j["c"]
-  if amount < int(shareprice):
-    await ctx.send(f"`Purchase amount must be more than share price`")
-  else:
-    if int(cash) < amount:
-      await ctx.send("`Purchase amount exceeds balance`")
+  docus = db.collection(u'Servers').document(str(ctx.guild.id))
+  pro = u'{}'.format(docus.get({u'Pro'}).to_dict()['Pro'])
+  if pro == "Pro":
+    q = requests.get('https://www.alphavantage.co/query?function=SYMBOL_SEARCH&keywords='+stocksymbol+'&apikey=QWOU4B1BS6VHRKOF')
+    f = q.json()
+    fe = f["bestMatches"][0]
+    fn = fe["2. name"]
+    x = fe["1. symbol"]
+    r = requests.get('https://finnhub.io/api/v1/quote?symbol=' + x +
+                      '&token=bre3nkfrh5rckh454te0')
+    j = r.json()
+    if "error" in j:
+      await ctx.send(j['error'])
+    #defs
+    docs = db.collection(u'UserData').document(str(ctx.author.id))
+    cash = u'{}'.format(docs.get({u'Cash'}).to_dict()['Cash'])
+    shareprice = j["c"]
+    if amount < int(shareprice):
+      await ctx.send(f"`Purchase amount must be more than share price`")
     else:
-      stockdoc = db.collection(u'UserData').document(str(ctx.author.id)).collection(u"Stocks").document(str(x))
-      sharesbought = amount/int(shareprice)
-      sharesbought = round(sharesbought)
-      spent = sharesbought * int(shareprice)
-      moneyafterpurchase = int(cash) - spent
-      docs.set({
-              u'Cash': int(moneyafterpurchase),
-      }, merge=True)
-      if stockdoc.get().exists:
-        sharesowned = u'{}'.format(stockdoc.get({u'Shares'}).to_dict()['Shares'])
-        sharesowned = sharesbought + int(sharesowned)
-        stockdoc.set({
-              u'Shares': int(sharesowned),
-        }, merge=True)
-        await ctx.send(f'`{sharesbought} shares of {str(fn)} bought at {str(shareprice)} `')
+      if int(cash) < amount:
+        await ctx.send("`Purchase amount exceeds balance`")
       else:
-        stockdoc.set({
-              u'Shares': int(sharesbought),
+        stockdoc = db.collection(u'UserData').document(str(ctx.author.id)).collection(u"Stocks").document(str(x))
+        sharesbought = amount/int(shareprice)
+        sharesbought = round(sharesbought)
+        spent = sharesbought * int(shareprice)
+        moneyafterpurchase = int(cash) - spent
+        docs.set({
+                u'Cash': int(moneyafterpurchase),
         }, merge=True)
-        await ctx.send(f'`{sharesbought} shares of {str(fn)} bought at {str(shareprice)} `')
-    
+        if stockdoc.get().exists:
+          sharesowned = u'{}'.format(stockdoc.get({u'Shares'}).to_dict()['Shares'])
+          sharesowned = sharesbought + int(sharesowned)
+          stockdoc.set({
+                u'Shares': int(sharesowned),
+          }, merge=True)
+          await ctx.send(f'`{sharesbought} shares of {str(fn)} bought at {str(shareprice)} `')
+        else:
+          stockdoc.set({
+                u'Shares': int(sharesbought),
+          }, merge=True)
+          await ctx.send(f'`{sharesbought} shares of {str(fn)} bought at {str(shareprice)} `')
+  else:
+    await ctx.send("`Aevus Pro Access required`")
+      
 @bot.command()
 async def Sell(ctx, stocksymbol: str, amount: int):
-  q = requests.get('https://www.alphavantage.co/query?function=SYMBOL_SEARCH&keywords='+stocksymbol+'&apikey=QWOU4B1BS6VHRKOF')
-  f = q.json()
-  fe = f["bestMatches"][0]
-  fn = fe["2. name"]
-  x = fe["1. symbol"]
-  r = requests.get('https://finnhub.io/api/v1/quote?symbol=' + x +
-                     '&token=bre3nkfrh5rckh454te0')
-  j = r.json()
-  if "error" in j:
-    await ctx.send(j['error'])
-  shareprice = j["c"]
-  sharessold = amount/int(shareprice)
-  sharessold = round(sharessold)
-  cashearned = int(sharessold) * int(shareprice)
-  if int(amount) < int(shareprice):
-    await ctx.send(f"`Sell amount must be more than share price`")
-  else:
-    stockdoc = db.collection(u'UserData').document(str(ctx.author.id)).collection(u"Stocks").document(str(x))
-    if stockdoc.get().exists:
-      sharesowned = u'{}'.format(stockdoc.get({u'Shares'}).to_dict()['Shares'])
-      if int(sharesowned) < int(sharessold):
-        if int(sharesowned) < 1:
-          await ctx.send('`You dont own any shares of the requested stock`')
-        else:
-          while int(sharesowned) < int(sharessold):
-            sharessold = sharessold - 1
-          cashearned = int(sharessold) * int(shareprice)
+  docus = db.collection(u'Servers').document(str(ctx.guild.id))
+  pro = u'{}'.format(docus.get({u'Pro'}).to_dict()['Pro'])
+  if pro == "Pro":  
+    q = requests.get('https://www.alphavantage.co/query?function=SYMBOL_SEARCH&keywords='+stocksymbol+'&apikey=QWOU4B1BS6VHRKOF')
+    f = q.json()
+    fe = f["bestMatches"][0]
+    fn = fe["2. name"]
+    x = fe["1. symbol"]
+    r = requests.get('https://finnhub.io/api/v1/quote?symbol=' + x +
+                      '&token=bre3nkfrh5rckh454te0')
+    j = r.json()
+    if "error" in j:
+      await ctx.send(j['error'])
+    shareprice = j["c"]
+    sharessold = amount/int(shareprice)
+    sharessold = round(sharessold)
+    cashearned = int(sharessold) * int(shareprice)
+    if int(amount) < int(shareprice):
+      await ctx.send(f"`Sell amount must be more than share price`")
+    else:
+      stockdoc = db.collection(u'UserData').document(str(ctx.author.id)).collection(u"Stocks").document(str(x))
+      if stockdoc.get().exists:
+        sharesowned = u'{}'.format(stockdoc.get({u'Shares'}).to_dict()['Shares'])
+        if int(sharesowned) < int(sharessold):
+          if int(sharesowned) < 1:
+            await ctx.send('`You dont own any shares of the requested stock`')
+          else:
+            while int(sharesowned) < int(sharessold):
+              sharessold = sharessold - 1
+            cashearned = int(sharessold) * int(shareprice)
+            sharesowned = int(sharesowned) - sharessold
+            docs = db.collection(u'UserData').document(str(ctx.author.id))
+            cash = u'{}'.format(docs.get({u'Cash'}).to_dict()['Cash'])
+            cashearned = cashearned + int(cash)
+            docs.set({
+                    u'Cash': int(cashearned),
+            }, merge=True)
+            
+            stockdoc.set({
+                    u'Shares': int(sharesowned),
+            }, merge=True)
+            await ctx.send(f'`{sharessold} shares sold`')
+        else:  
           sharesowned = int(sharesowned) - sharessold
           docs = db.collection(u'UserData').document(str(ctx.author.id))
           cash = u'{}'.format(docs.get({u'Cash'}).to_dict()['Cash'])
@@ -949,21 +971,10 @@ async def Sell(ctx, stocksymbol: str, amount: int):
                   u'Shares': int(sharesowned),
           }, merge=True)
           await ctx.send(f'`{sharessold} shares sold`')
-      else:  
-        sharesowned = int(sharesowned) - sharessold
-        docs = db.collection(u'UserData').document(str(ctx.author.id))
-        cash = u'{}'.format(docs.get({u'Cash'}).to_dict()['Cash'])
-        cashearned = cashearned + int(cash)
-        docs.set({
-                u'Cash': int(cashearned),
-        }, merge=True)
-        
-        stockdoc.set({
-                u'Shares': int(sharesowned),
-        }, merge=True)
-        await ctx.send(f'`{sharessold} shares sold`')
-    else:
-      await ctx.send('`You dont own any shares of the requested stock`')
+      else:
+        await ctx.send('`You dont own any shares of the requested stock`')
+  else:
+    await ctx.send("`Aevus Pro Access required`")
 
 @bot.command()
 async def Profile(ctx):
@@ -983,7 +994,7 @@ async def Profile(ctx):
         level = u'{}'.format(doc_ref.get({u'Level'}).to_dict()['Level'])
         embed.add_field(name="Level", value=f'{str(level)}', inline=False)
         boost = u'{}'.format(doc_ref.get({u'Boosts'}).to_dict()['Boosts'])
-        embed.add_field(name="Boosts", value=f'{str(boost)}', inline=False)
+        embed.add_field(name="Upgrade Tokens", value=f'{str(boost)}', inline=False)
         #pro = u'{}'.format(doc_ref.get({u'Pro'}).to_dict()['Pro'])
         #embed.add_field(name="Account Type", value=f'{str(pro)}', inline=False)
         joined = u'{}'.format(doc_ref.get({u'Joined'}).to_dict()['Joined'])
@@ -1001,7 +1012,6 @@ async def Profile(ctx):
             shareownedvalue = int(sharesownded) * int(sharevalue)
             embed.add_field(name=f"{str(stock)}", value=f'${str(shareownedvalue)}', inline=False)
     await ctx.send(embed=embed)
-
 
 @bot.command()
 async def Stock(ctx, stocksymbol: str):
@@ -1031,7 +1041,6 @@ async def Stock(ctx, stocksymbol: str):
     embed.add_field(name="Previous Close Price", value=j["pc"], inline=False)
     embed.set_footer(text="Command by Synapse Bot. Check out Sybapse for more info!")
     await ctx.send(embed=embed)
-
 
 @bot.command()
 async def clear(ctx, amount=5):
@@ -1563,12 +1572,38 @@ async def claim(ctx, code: str):
             await ctx.send("`Already Used`")
 
 @bot.command()
-async def Boost(ctx, upgradetype="Guild"):
+async def Store(ctx):
+  #store server check
+  storestatus = db.collection("ServerData").document("Settings")
+  storeonline = u'{}'.format(storestatus.get({u'Store'}).to_dict()['Store'])
+  if str(storeonline) == 'Online':
+    users_ref = db.collection("Store")
+    docs = users_ref.stream()
+    embed = discord.Embed(title="Store", description= "Add desc",color=random.choice(colors))
+    for doc in docs:
+      try:
+        storedata = db.collection(u'Store').document(str(doc.id))
+        objname = u'{}'.format(storedata.get({u'Name'}).to_dict()['Name'])
+        cost = u'{}'.format(storedata.get({u'Cost'}).to_dict()['Cost'])
+        amount = u'{}'.format(storedata.get({u'Amount'}).to_dict()['Amount'])
+        objtype = u'{}'.format(storedata.get({u'Type'}).to_dict()['Type'])
+        embed.add_field(name=str(objname),
+          value=f'TYPE: **{objtype}** COST: **{cost}** Stock: **{amount}** ', inline=False)
+      except:
+        pass
+    await ctx.send(embed=embed)
+  else:
+    await ctx.send('`❌ Store Offline`')
+  
+
+
+@bot.command()
+async def Upgrade(ctx, upgradetype="Guild"):
     docs = db.collection(u'UserData').document(str(ctx.author.id))
     guilddocs = db.collection(u'Servers').document(str(ctx.guild.id))
     currentboosts = u'{}'.format(docs.get({u'Boosts'}).to_dict()['Boosts'])
     if int(currentboosts) < 1:
-        await ctx.send("`No boosts remaining`")
+        await ctx.send("`No Upgrade Tokens remaining`")
     elif int(currentboosts) > 0:
         print('a')
         serverstatus = u'{}'.format(guilddocs.get({u'Pro'}).to_dict()['Pro'])
@@ -1577,7 +1612,7 @@ async def Boost(ctx, upgradetype="Guild"):
             guilddocs.get({u'Booster'}).to_dict()['Booster'])
         print('c')
         if str(serverstatus) == "Pro":
-            await ctx.send(f"{str(booster)} already boosted the server")
+            await ctx.send(f"{str(booster)} already upgraded the server")
         else:
             print('d')
             newboost = int(currentboosts) - 1
@@ -1606,7 +1641,6 @@ async def Boost(ctx, upgradetype="Guild"):
                 await ctx.send(
                     f"{ctx.guild.name} upgraded the server to PRO! Thanks to {ctx.author.mention}"
                 )
-
 
 @bot.event
 async def on_message(message):
@@ -1651,16 +1685,13 @@ async def on_message(message):
                     "`IQ is currently offline, please try again later!`")
 
 @bot.command()
-async def Mute(ctx, member: discord.Member, *, reason):
-    docs = db.collection(u'Servers').document(str(ctx.message.guild.id))
-    try:
-        moderationRole = u'{}'.format(
+async def Mute(ctx, members: discord.Member, *, reason):
+    docs = db.collection(u'Servers').document(str(ctx.author.guild.id))
+    moderationRole = u'{}'.format(
             docs.get({u'ModRole'}).to_dict()['ModRole'])
-    except:
-        moderationRole = 'None'
     if str(moderationRole) == 'None':
         rolee = discord.utils.get(ctx.guild.roles, name="Muted")
-        await member.add_roles(rolee)
+        await members.add_roles(rolee)
         if docs.get().exists:
             server = u'{}'.format(
                 docs.get(
@@ -1669,7 +1700,7 @@ async def Mute(ctx, member: discord.Member, *, reason):
             embed = discord.Embed(
                 title=f"Muted",
                 description=
-                f"{member.mention} has been muted for {reason} by {ctx.author.mention}",
+                f"{members.mention} has been muted for {reason} by {ctx.author.mention}",
                 color=random.choice(colors))
             embed.set_footer(text="iQ Bot by Aevus : Q Help")
             await modchannel.send(embed=embed)
@@ -1678,7 +1709,7 @@ async def Mute(ctx, member: discord.Member, *, reason):
                                   ctx.guild.roles)
         if role in ctx.author.roles:
             rolee = discord.utils.get(ctx.guild.roles, name="Muted")
-            await member.add_roles(rolee)
+            await members.add_roles(rolee)
             if docs.get().exists:
                 server = u'{}'.format(
                     docs.get(
@@ -1687,13 +1718,12 @@ async def Mute(ctx, member: discord.Member, *, reason):
                 embed = discord.Embed(
                     title=f"Muted",
                     description=
-                    f"{member.mention} has been muted for **{reason}** by {ctx.author.mention}",
+                    f"{members.mention} has been muted for **{reason}** by {ctx.author.mention}",
                     color=random.choice(colors))
                 embed.set_footer(text="iQ Bot by Aevus : Q Help")
                 await modchannel.send(embed=embed)
         else:
             await ctx.send("`Missing Permissions`")
-    role = discord.utils.get(ctx.guild.roles, name="Muted")
 
 @bot.command()
 async def UnMute(ctx, member: discord.Member):
@@ -1780,6 +1810,7 @@ async def Feedback(ctx, *, message: str):
     logger.info(f"{datetoday} {ctx.author.id} {str(message)}")
     channel = await ctx.author.create_dm()
     await channel.send('Thanks for the feedback')
+    await channel.send('Support Server: https://discord.gg/nVBdeQb')
     time.sleep(1)
     await channel.send(
         f'Received as: `{datetoday} {ctx.author.id} {str(message)}`')
@@ -1826,8 +1857,6 @@ async def Host(ctx):
         name="Guild Members", value=str(true_member_count), inline=False)
     embed.set_footer(text="iQ Bot by Aevus : Q Help")
     await ctx.send(embed=embed)
-
-
 
 @bot.command()
 async def Members(ctx):
@@ -2017,7 +2046,7 @@ async def Guild(ctx):
             pass
         else:
             embed.add_field(
-                name="Booster", value=f'<@{str(booster)}>', inline=False)
+                name="Upgraded by", value=f'<@{str(booster)}>', inline=False)
         embed.add_field(
             name="Mod Channel", value=f'{str(modchannel)}', inline=False)
         modrole = u'{}'.format(doc_ref.get({u'ModRole'}).to_dict()['ModRole'])
@@ -2105,7 +2134,7 @@ async def Panel(ctx):
         else:
             embed.add_field(
                 name="iQ Pro",
-                value=f'```This server is boosted by <@{str(booster)}>```',
+                value=f'`This server is upgraded by <@{str(booster)}>`',
                 inline=True)
 
     await ctx.send(embed=embed)
@@ -2128,7 +2157,7 @@ if __name__ == '__main__':  # Ensures this is the file being ran
     for extension in extensions:
         bot.load_extension(extension)  # Loades every extension.
 
-bot.add_cog(Music(bot))
+#bot.add_cog(Music(bot))
 keep_alive()
 token = os.environ.get("DISCORD_BOT_SECRET")
 bot.run(token)
