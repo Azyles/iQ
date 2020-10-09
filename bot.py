@@ -649,6 +649,7 @@ async def on_guild_join(guild):
                       u'Level': 1,
                       u'Job': u'None',
                       u'Cash': 100,
+                      u'XP': 0,
                       u'Joined': dt_string,
                       u'Claimed': dt_string,
                   })
@@ -674,10 +675,12 @@ async def setupacount(ctx):
                       u'Level': 1,
                       u'Job': u'None',
                       u'Cash': 100,
+                      u'XP': 0,
                       u'Joined': dt_string,
                       u'Claimed': dt_string,
                 })
                 print(f"{member.name} is in")
+    await ctx.channel.purge(limit=1)
 
 @bot.command()
 async def daily(ctx):
@@ -1449,6 +1452,7 @@ async def on_member_join(member):
                       u'Level': 1,
                       u'Job': u'None',
                       u'Cash': 100,
+                      u'XP': 0,
                       u'Joined': dt_string,
                       u'Claimed': dt_string,
             })
@@ -1834,24 +1838,69 @@ async def Hire(ctx, jobname="none"):
     docs = db.collection("Jobs").document(str(jobname))
     if docs.get().exists:
       amount = u'{}'.format(docs.get({u'Amount'}).to_dict()['Amount'])
-      if int(amount) > 0:
-        minlevel = u'{}'.format(docs.get({u'Level'}).to_dict()['Level'])
-        level = u'{}'.format(userref.get({u'Level'}).to_dict()['Level'])
-        if int(level) >= int(minlevel):
-          userref.set({
-            u'Job': str(jobname),
-          }, merge=True)
-          amount = int(amount) - 1
-          docs.set({
-            u'Amount': amount,
-          }, merge=True),
-          await ctx.send(f'<@{ctx.author.id}> has now been hired as a {jobname}')    
+      activejob = u'{}'.format(userref.get({u'Job'}).to_dict()['Job'])
+      
+      if str(activejob) == "None":
+        if int(amount) > 0:
+          minlevel = u'{}'.format(docs.get({u'Level'}).to_dict()['Level'])
+          level = u'{}'.format(userref.get({u'Level'}).to_dict()['Level'])
+          if int(level) >= int(minlevel):
+            userref.set({
+              u'Job': str(jobname),
+            }, merge=True)
+            amount = int(amount) - 1
+            docs.set({
+              u'Amount': amount,
+            }, merge=True),
+            await ctx.send(f'<@{ctx.author.id}> has now been hired as a {jobname}')    
+          else:
+            await ctx.send('`You dont meet the qualifications for this career`')
         else:
-          await ctx.send('`You dont meet the qualifications for this career`')
+          await ctx.send('`Job is currently full :(`')
       else:
-        await ctx.send('`Job is currently full :(`')
+        await ctx.send('`You already have an active job!`')
     else:
       await ctx.send('`Job does not exist`')
+
+@bot.command()
+@commands.cooldown(1, 1800, commands.BucketType.user)
+async def Work(ctx):
+  userref = db.collection("UserData").document(str(ctx.author.id))
+  activejob = u'{}'.format(userref.get({u'Job'}).to_dict()['Job'])
+  if activejob == "None":
+    await ctx.send("`You need a job to work!`")
+  else:
+    docs = db.collection("Jobs").document(str(activejob))
+    cash = u'{}'.format(userref.get({u'Cash'}).to_dict()['Cash'])
+    xp = u'{}'.format(userref.get({u'XP'}).to_dict()['XP'])
+    pay = u'{}'.format(docs.get({u'Pay'}).to_dict()['Pay'])
+    cash = int(cash) + int(pay)
+    xp = int(xp) + random.randrange(5, 20)
+    if (int(xp)/1000).is_integer():
+      level = u'{}'.format(userref.get({u'Level'}).to_dict()['Level'])
+      level = int(level) + 1
+      userref.set({
+        u'Level': int(level)
+      }, merge=True)
+    userref.set({
+      u'Cash': int(cash)
+    }, merge=True)
+    await ctx.send(f"`You were payed ${pay}. Keep up the great work! `")
+  
+@bot.command()
+async def CreateJob(ctx, name=str,amount=int,pay=int,lvl=int):
+  if str(ctx.author.id) == "408753256014282762":
+    jbref = db.collection("Jobs").document(str(name))
+    if jbref.get().exists:
+      await ctx.send(f"`Job already exists`")
+    else:
+      jbref.set({
+        u'Name': name,
+        u'Level': lvl,
+        u'Pay': pay,
+        u'Amount': amount,
+      })
+    
     
 
 @bot.command()
