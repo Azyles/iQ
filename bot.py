@@ -872,7 +872,7 @@ async def server(ctx):
     await ctx.send(ctx.guild.id)
 
 @bot.command()
-async def Buy(ctx, stocksymbol: str, amount: int):
+async def BuyStock(ctx, stocksymbol: str, amount: int):
   docus = db.collection(u'Servers').document(str(ctx.guild.id))
   pro = u'{}'.format(docus.get({u'Pro'}).to_dict()['Pro'])
   if pro == "Pro":
@@ -920,7 +920,7 @@ async def Buy(ctx, stocksymbol: str, amount: int):
     await ctx.send("`Aevus Pro Access required`")
       
 @bot.command()
-async def Sell(ctx, stocksymbol: str, amount: int):
+async def SellStock(ctx, stocksymbol: str, amount: int):
   docus = db.collection(u'Servers').document(str(ctx.guild.id))
   pro = u'{}'.format(docus.get({u'Pro'}).to_dict()['Pro'])
   if pro == "Pro":  
@@ -1579,6 +1579,51 @@ async def claim(ctx, code: str):
             await ctx.send("`Already Used`")
 
 @bot.command()
+async def Buy(ctx,name:str):
+  storestatus = db.collection("ServerData").document("Settings")
+  storeonline = u'{}'.format(storestatus.get({u'Store'}).to_dict()['Store'])
+  if str(storeonline) == 'Online':
+    item = db.collection("Store").document(str(name))
+    if item.get().exists:
+      amount = u'{}'.format(item.get({u'Amount'}).to_dict()['Amount'])
+      if int(amount) > 0:
+        cost = u'{}'.format(item.get({u'Cost'}).to_dict()['Cost'])
+        userdata = db.collection("UserData").document(str(ctx.author.id))
+        cash = u'{}'.format(userdata.get({u'Cash'}).to_dict()['Cash'])
+        if int(cash) >= int(cost):
+          cash = int(cash) - int(cost)
+          userdata.set({
+            u'Cash': cash,
+          }, merge=True)
+          amount = int(amount) - 1
+          item.set({
+            u'Amount': amount,
+          }, merge=True)
+          userinv = db.collection("UserData").document(str(ctx.author.id)).collection("Inventory").document(str(name))
+          if userinv.get().exists:
+            quantity = u'{}'.format(userdata.get({u'Amount'}).to_dict()['Amount'])
+            quantity = int(quantity) + 1
+            userinv.set({
+              u'Name': name,
+              u'Amount': quantity,
+            }, merge=True)
+            await ctx.send(f"`Purchased {name}`")
+          else:
+            userinv.set({
+              u'Name': name,
+              u'Amount': 1,
+            }, merge=True)
+            await ctx.send(f"`Purchased {name}`")
+        else:
+          await ctx.send("`Not enough cash`")
+      else:
+        await ctx.send("`Item Sold Out`")
+    else:
+      await ctx.send("`Item does not exist`")
+  else:
+    await ctx.send("`Store Offline`")
+
+@bot.command()
 async def Store(ctx):
   #store server check
   storestatus = db.collection("ServerData").document("Settings")
@@ -1604,24 +1649,17 @@ async def Store(ctx):
   
 
 @bot.command()
-async def StoreAdd(ctx):
+async def StoreAdd(ctx,name:str,cost:int,amount:int,objtype:str):
   #store server check
   if str(ctx.author.id) == '408753256014282762':
-    users_ref = db.collection("Store")
-    docs = users_ref.stream()
-    embed = discord.Embed(title="Store", description= "Add desc",color=random.choice(colors))
-    for doc in docs:
-      try:
-        storedata = db.collection(u'Store').document(str(doc.id))
-        objname = u'{}'.format(storedata.get({u'Name'}).to_dict()['Name'])
-        cost = u'{}'.format(storedata.get({u'Cost'}).to_dict()['Cost'])
-        amount = u'{}'.format(storedata.get({u'Amount'}).to_dict()['Amount'])
-        objtype = u'{}'.format(storedata.get({u'Type'}).to_dict()['Type'])
-        embed.add_field(name=str(objname),
-          value=f'TYPE: **{objtype}** COST: **{cost}** Stock: **{amount}** ', inline=False)
-      except:
-        pass
-    await ctx.send(embed=embed)
+    users_ref = db.collection("Store").document(f"{str(name)}")
+    users_ref.set({
+      u'Name': f"{name}",
+      u'Cost': cost,
+      u'Amount': amount,
+      u'Type': f"{objtype}",
+    }, merge=True)
+    await ctx.send(f"`Added {objtype}`")
   else:
     await ctx.send('`Only Aevus Developers can use this command`')
 
@@ -1812,8 +1850,44 @@ async def Invite(ctx, member=None):
         #dming it to the person
         await channel.send(invitelink)
 
+@bot.command()
+async def LeaveJob(ctx):
+    userref = db.collection("UserData").document(str(ctx.author.id))
+    activejob = u'{}'.format(userref.get({u'Job'}).to_dict()['Job'])
+    if str(activejob) == "None":
+      await ctx.send("`No active job found!`")
+    else:
+      docs = db.collection("Jobs").document(str(activejob))
+      amount = u'{}'.format(docs.get({u'Amount'}).to_dict()['Amount'])
+      amount = int(amount) + 1
+      userref.set({
+        u'Job': "None"
+      }, merge=True)
+      docs.set({
+        u'Amount': amount,
+      }, merge=True),
+      await ctx.send("`You have now left your job :(`")
 
 @bot.command()
+async def Jobs(ctx):
+    users_ref = db.collection("Jobs")
+    docs = users_ref.stream()
+    embed = discord.Embed(title="Look for a job!", description= "Add desc",color=random.choice(colors))
+    for doc in docs:
+      try:
+        storedata = db.collection(u'Jobs').document(str(doc.id))
+        objname = u'{}'.format(storedata.get({u'Name'}).to_dict()['Name'])
+        pay = u'{}'.format(storedata.get({u'Pay'}).to_dict()['Pay'])
+        amount = u'{}'.format(storedata.get({u'Amount'}).to_dict()['Amount'])
+        level = u'{}'.format(storedata.get({u'Level'}).to_dict()['Level'])
+        embed.add_field(name=str(objname),
+          value=f'Pay: **{pay}** Level Requirment: **{level}** Open Positions: **{amount}** ', inline=False)
+      except:
+        pass
+    await ctx.send(embed=embed) 
+
+@bot.command()
+@commands.cooldown(1, 43200, commands.BucketType.user)
 async def Hire(ctx, jobname="none"):
   jobname = str(jobname.lower())
   print(jobname)
