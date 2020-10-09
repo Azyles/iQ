@@ -1888,17 +1888,17 @@ async def Work(ctx):
     await ctx.send(f"`You were payed ${pay}. Keep up the great work! `")
   
 @bot.command()
-async def CreateJob(ctx, name=str,amount=int,pay=int,lvl=int):
+async def CreateJob(ctx, name:str,amount:int,pay:int,lvl:int):
   if str(ctx.author.id) == "408753256014282762":
     jbref = db.collection("Jobs").document(str(name))
     if jbref.get().exists:
       await ctx.send(f"`Job already exists`")
     else:
       jbref.set({
-        u'Name': name,
-        u'Level': lvl,
-        u'Pay': pay,
-        u'Amount': amount,
+        u'Name': str(name),
+        u'Level': int(lvl),
+        u'Pay': int(pay),
+        u'Amount': int(amount),
       })
     
     
