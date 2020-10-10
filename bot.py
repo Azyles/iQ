@@ -43,9 +43,9 @@ songs = asyncio.Queue()
 start = time.time()
 
 bot = commands.Bot(
-    '&', description='Ultimate Moderation Bot', case_insensitive=True)
+    'Q ', description='Ultimate Moderation Bot', case_insensitive=True)
 colors = [0xAD303F, 0xBE3B4A, 0x9D2533, 0xD83144]
-showlist = ['& Help']
+showlist = ['Q  Help']
 bot.remove_command('help')
 
 # Silence useless bug reports messages
@@ -758,7 +758,7 @@ async def ModRole(ctx, field='None',rolename = "iQ-Mod"):
     doc_ref = db.collection(u'Servers').document(str(ctx.message.guild.id))
     moderationRole = u'{}'.format(doc_ref.get({u'ModRole'}).to_dict()['ModRole']) 
     if moderationRole == "None":
-      await ctx.send("ModRole not set! You can set it by typing `&Modrole Create`")
+      await ctx.send("ModRole not set! You can set it by typing `Q Modrole Create`")
     else:
       embed = discord.Embed(
         title="ModRole",
@@ -780,7 +780,7 @@ async def ModLog(ctx, field='None',modname = "iQ-Log"):
     doc_ref = db.collection(u'Servers').document(str(ctx.message.guild.id))
     moderationChannel = u'{}'.format(doc_ref.get({u'ModerationChannel'}).to_dict()['ModerationChannel']) 
     if moderationChannel == "None":
-      await ctx.send("Moderation Channel not set! You can set it by typing `&ModLog Create (optional name)`")
+      await ctx.send("Moderation Channel not set! You can set it by typing `Q ModLog Create (optional name)`")
     else:
       embed = discord.Embed(
         title="ModLog",
@@ -800,7 +800,7 @@ async def AutoRole(ctx, field='None',rolename = "Guest"):
     doc_ref = db.collection(u'Servers').document(str(ctx.message.guild.id))
     arole = u'{}'.format(doc_ref.get({u'AutoRole'}).to_dict()['AutoRole']) 
     if arole == "None":
-      await ctx.send("Auto Role not set! You can set it by typing `&AutoRole Create (role name)`")
+      await ctx.send("Auto Role not set! You can set it by typing `Q AutoRole Create (role name)`")
     else:
       embed = discord.Embed(
         title="AutoRole",
@@ -820,7 +820,7 @@ async def WelcomeMessage(ctx, field='None',wmessage = "None"):
     doc_ref = db.collection(u'Servers').document(str(ctx.message.guild.id))
     welcomeMessage = u'{}'.format(doc_ref.get({u'WelcomeMessage'}).to_dict()['WelcomeMessage']) 
     if welcomeMessage == "None":
-      await ctx.send("Welcome Message not set! You can set it by typing `&WelcomeMessage Create (message)`")
+      await ctx.send("Welcome Message not set! You can set it by typing `Q WelcomeMessage Create (message)`")
     else:
       embed = discord.Embed(
         title="Welcome Message",
@@ -982,6 +982,45 @@ async def SellStock(ctx, stocksymbol: str, amount: int):
     await ctx.send("`Aevus Pro Access required`")
 
 @bot.command()
+async def User(ctx,member: discord.Member):
+    embed = discord.Embed(
+        title=f"{member.name}",
+        description=
+        "iQ is the ultimate moderation bot! It has everything relating to server management. ",
+        color=random.choice(colors))
+    await asyncio.sleep(1)
+    embed.set_thumbnail(url="https://i.imgur.com/f6XzjPE.png")
+    embed.set_footer(text="Aevus: Q Help")
+    doc_ref = db.collection(u'UserData').document(f'{member.id}')
+    if doc_ref.get().exists:
+        embed.add_field(name="Name", value=f'{member.name}', inline=False)
+        cash = u'{}'.format(doc_ref.get({u'Cash'}).to_dict()['Cash'])
+        embed.add_field(name="Cash", value=f'{str(cash)}', inline=False)
+        level = u'{}'.format(doc_ref.get({u'Level'}).to_dict()['Level'])
+        embed.add_field(name="Level", value=f'{str(level)}', inline=False)
+        boost = u'{}'.format(doc_ref.get({u'Boosts'}).to_dict()['Boosts'])
+        xp = u'{}'.format(doc_ref.get({u'XP'}).to_dict()['XP'])
+        embed.add_field(name="XP", value=f'{str(xp)}', inline=False)
+        embed.add_field(name="Upgrade Tokens", value=f'{str(boost)}', inline=False)
+        #pro = u'{}'.format(doc_ref.get({u'Pro'}).to_dict()['Pro'])
+        #embed.add_field(name="Account Type", value=f'{str(pro)}', inline=False)
+        joined = u'{}'.format(doc_ref.get({u'Joined'}).to_dict()['Joined'])
+        embed.add_field(name="Joined", value=f'{str(joined)}', inline=False)
+        users_ref = db.collection("UserData").document(str(member.id)).collection(u"Stocks")
+        docs = users_ref.stream()
+        for doc in docs:
+            stock = doc.id
+            r = requests.get('https://finnhub.io/api/v1/quote?symbol=' +
+                             str(stock) + '&token=bre3nkfrh5rckh454te0')
+            j = r.json()
+            sharevalue = j['c']
+            stockRef = db.collection("UserData").document(str(member.id)).collection(u"Stocks").document(str(stock))
+            sharesownded = u'{}'.format(stockRef.get({u'Shares'}).to_dict()['Shares'])
+            shareownedvalue = int(sharesownded) * int(sharevalue)
+            embed.add_field(name=f"{str(stock)}", value=f'${str(shareownedvalue)}', inline=False)
+    await ctx.send(embed=embed)
+
+@bot.command()
 async def Profile(ctx):
     embed = discord.Embed(
         title=f"{ctx.author.name}",
@@ -990,7 +1029,7 @@ async def Profile(ctx):
         color=random.choice(colors))
     await asyncio.sleep(1)
     embed.set_thumbnail(url="https://i.imgur.com/f6XzjPE.png")
-    embed.set_footer(text="Aevus: &Help")
+    embed.set_footer(text="Aevus: Q Help")
     doc_ref = db.collection(u'UserData').document(f'{ctx.author.id}')
     if doc_ref.get().exists:
         embed.add_field(name="Name", value=f'{ctx.author.name}', inline=False)
@@ -999,6 +1038,8 @@ async def Profile(ctx):
         level = u'{}'.format(doc_ref.get({u'Level'}).to_dict()['Level'])
         embed.add_field(name="Level", value=f'{str(level)}', inline=False)
         boost = u'{}'.format(doc_ref.get({u'Boosts'}).to_dict()['Boosts'])
+        xp = u'{}'.format(doc_ref.get({u'XP'}).to_dict()['XP'])
+        embed.add_field(name="XP", value=f'{str(xp)}', inline=False)
         embed.add_field(name="Upgrade Tokens", value=f'{str(boost)}', inline=False)
         #pro = u'{}'.format(doc_ref.get({u'Pro'}).to_dict()['Pro'])
         #embed.add_field(name="Account Type", value=f'{str(pro)}', inline=False)
@@ -1076,7 +1117,7 @@ async def clear(ctx, amount=5):
                         description=
                         f"{ctx.author.name} Deleted {amount} messages",
                         color=random.choice(colors))
-                    embed.set_footer(text="Aevus: &Help")
+                    embed.set_footer(text="Aevus: Q Help")
                     await modchannel.send(embed=embed)
             except:
                 pass
@@ -1103,7 +1144,7 @@ async def clear(ctx, amount=5):
                             description=
                             f"{ctx.author.name} Deleted {amount} messages",
                             color=random.choice(colors))
-                        embed.set_footer(text="Aevus: &Help")
+                        embed.set_footer(text="Aevus: Q Help")
                         await modchannel.send(embed=embed)
                 except:
                     pass
@@ -1127,7 +1168,7 @@ async def warn(ctx, member: discord.Member, *, content):
             " If you keep up this behavior it may result in a kick/ban.",
             color=random.choice(colors))
         await asyncio.sleep(1)
-        embed.set_footer(text="Aevus: &Help")
+        embed.set_footer(text="Aevus: Q Help")
         await channel.send(embed=embed)
         doc_ref = db.collection(u'Servers').document(str(ctx.message.guild.id))
         try:
@@ -1141,7 +1182,7 @@ async def warn(ctx, member: discord.Member, *, content):
                     description=
                     f"{member.mention} has been warned for {content} by {ctx.author.mention}",
                     color=random.choice(colors))
-                embed.set_footer(text="Aevus: &Help")
+                embed.set_footer(text="Aevus: Q Help")
                 await modchannel.send(embed=embed)
         except:
             pass
@@ -1158,7 +1199,7 @@ async def warn(ctx, member: discord.Member, *, content):
                 " If you keep up this behavior it may result in a kick/ban.",
                 color=random.choice(colors))
             await asyncio.sleep(1)
-            embed.set_footer(text="Aevus: &Help")
+            embed.set_footer(text="Aevus: Q Help")
             await channel.send(embed=embed)
             doc_ref = db.collection(u'Servers').document(
                 str(ctx.message.guild.id))
@@ -1173,7 +1214,7 @@ async def warn(ctx, member: discord.Member, *, content):
                         description=
                         f"{member.mention} has been warned for {content} by {ctx.author.mention}",
                         color=random.choice(colors))
-                    embed.set_footer(text="Aevus: &Help")
+                    embed.set_footer(text="Aevus: Q Help")
                     await modchannel.send(embed=embed)
             except:
                 pass
@@ -1194,7 +1235,7 @@ async def kick(ctx, member: discord.Member, reason=None):
                 title="Error",
                 description='Please specify reason! !kick <User> <Reason>',
                 color=random.choice(colors))
-            embed.set_footer(text="Aevus: &Help")
+            embed.set_footer(text="Aevus: Q Help")
             await ctx.send(embed=embed)
         else:
             try:
@@ -1205,7 +1246,7 @@ async def kick(ctx, member: discord.Member, reason=None):
                     "You are receiving a Kick for the following reason: " +
                     reason,
                     color=random.choice(colors))
-                embed.set_footer(text="Aevus: &Help")
+                embed.set_footer(text="Aevus: Q Help")
                 await channel.send(embed=embed)
             except:
                 pass
@@ -1222,14 +1263,14 @@ async def kick(ctx, member: discord.Member, reason=None):
                         description=
                         f"{member.mention} has been kicked for {reason} by {ctx.author.mention}",
                         color=random.choice(colors))
-                    embed.set_footer(text="Aevus: &Help")
+                    embed.set_footer(text="Aevus: Q Help")
                     await modchannel.send(embed=embed)
                 await member.kick()
                 embed = discord.Embed(
                     title="Removed",
                     description=f"Successfully kicked {member} for {reason}",
                     color=random.choice(colors))
-                embed.set_footer(text="Aevus: &Help")
+                embed.set_footer(text="Aevus: Q Help")
                 await ctx.send(embed=embed)
             except:
                 pass
@@ -1243,7 +1284,7 @@ async def kick(ctx, member: discord.Member, reason=None):
                     title="Error",
                     description='Please specify reason! !kick <User> <Reason>',
                     color=random.choice(colors))
-                embed.set_footer(text="Aevus: &Help")
+                embed.set_footer(text="Aevus: Q Help")
                 await ctx.send(embed=embed)
             else:
                 try:
@@ -1254,7 +1295,7 @@ async def kick(ctx, member: discord.Member, reason=None):
                         "You are receiving a Kick for the following reason: " +
                         reason,
                         color=random.choice(colors))
-                    embed.set_footer(text="Aevus: &Help")
+                    embed.set_footer(text="Aevus: Q Help")
                     await channel.send(embed=embed)
                 except:
                     pass
@@ -1271,7 +1312,7 @@ async def kick(ctx, member: discord.Member, reason=None):
                             description=
                             f"{member.mention} has been kicked for {reason} by {ctx.author.mention}",
                             color=random.choice(colors))
-                        embed.set_footer(text="Aevus: &Help")
+                        embed.set_footer(text="Aevus: Q Help")
                         await modchannel.send(embed=embed)
                     await member.kick()
                     embed = discord.Embed(
@@ -1279,7 +1320,7 @@ async def kick(ctx, member: discord.Member, reason=None):
                         description=
                         f"Successfully kicked {member} for {reason}",
                         color=random.choice(colors))
-                    embed.set_footer(text="Aevus: &Help")
+                    embed.set_footer(text="Aevus: Q Help")
                     await ctx.send(embed=embed)
                 except:
                     pass
@@ -1298,9 +1339,9 @@ async def ban(ctx, member: discord.Member, reason=None):
         if reason == None:
             embed = discord.Embed(
                 title="Error",
-                description='Please specify reason! `&ban <User> <Reason>`',
+                description='Please specify reason! `Q ban <User> <Reason>`',
                 color=random.choice(colors))
-            embed.set_footer(text="Aevus: &Help")
+            embed.set_footer(text="Aevus: Q Help")
             await ctx.send(embed=embed)
         else:
             try:
@@ -1311,7 +1352,7 @@ async def ban(ctx, member: discord.Member, reason=None):
                     "You are receiving a BAN for the following reason: " +
                     reason,
                     color=random.choice(colors))
-                embed.set_footer(text="Aevus: &Help")
+                embed.set_footer(text="Aevus: Q Help")
                 await channel.send(embed=embed)
             except:
                 pass
@@ -1328,14 +1369,14 @@ async def ban(ctx, member: discord.Member, reason=None):
                         description=
                         f"{member.mention} has been banned for {reason} by {ctx.author.mention}",
                         color=random.choice(colors))
-                    embed.set_footer(text="Aevus: &Help")
+                    embed.set_footer(text="Aevus: Q Help")
                     await modchannel.send(embed=embed)
                 await member.ban()
                 embed = discord.Embed(
                     title="BANNED",
                     description=f"Successfully banned {member} for {reason}",
                     color=random.choice(colors))
-                embed.set_footer(text="Aevus: &Help")
+                embed.set_footer(text="Aevus: Q Help")
                 await ctx.send(embed=embed)
             except:
                 pass
@@ -1352,7 +1393,7 @@ async def ban(ctx, member: discord.Member, reason=None):
                     "You are receiving a BAN for the following reason: " +
                     reason,
                     color=random.choice(colors))
-                embed.set_footer(text="Aevus: &Help")
+                embed.set_footer(text="Aevus: Q Help")
                 await channel.send(embed=embed)
             except:
                 pass
@@ -1369,14 +1410,14 @@ async def ban(ctx, member: discord.Member, reason=None):
                         description=
                         f"{member.mention} has been banned for {reason} by {ctx.author.mention}",
                         color=random.choice(colors))
-                    embed.set_footer(text="Aevus: &Help")
+                    embed.set_footer(text="Aevus: Q Help")
                     await modchannel.send(embed=embed)
                 await member.ban()
                 embed = discord.Embed(
                     title="BANNED",
                     description=f"Successfully banned {member} for {reason}",
                     color=random.choice(colors))
-                embed.set_footer(text="Aevus: &Help")
+                embed.set_footer(text="Aevus: Q Help")
                 await ctx.send(embed=embed)
             except:
                 pass
@@ -1399,7 +1440,7 @@ async def on_member_join(member):
                     title=f"Welcome to {member.guild.name}",
                     description=f"{member.guild.name} is moderated by iQ.",
                     color=random.choice(colors))
-                embed.set_footer(text="Aevus: &Help")
+                embed.set_footer(text="Aevus: Q Help")
                 await asyncio.sleep(1)
                 await channel.send(embed=embed)
             else:
@@ -1409,7 +1450,7 @@ async def on_member_join(member):
                     description=
                     f"{str(welcomemessage)}.{member.guild.name} is moderated by iQ.",
                     color=random.choice(colors))
-                embed.set_footer(text="Aevus: &Help")
+                embed.set_footer(text="Aevus: Q Help")
                 await asyncio.sleep(1)
                 await channel.send(embed=embed)
         else:
@@ -1427,7 +1468,7 @@ async def on_member_join(member):
                     title=f"Welcome to {member.guild.name}",
                     description=f"{member.guild.name} is moderated by iQ.",
                     color=random.choice(colors))
-                embed.set_footer(text="Aevus: &Help")
+                embed.set_footer(text="Aevus: Q Help")
                 await asyncio.sleep(1)
                 await channel.send(embed=embed)
             else:
@@ -1437,7 +1478,7 @@ async def on_member_join(member):
                     description=
                     f"{str(welcomemessage)}.{member.guild.name} is moderated by iQ.",
                     color=random.choice(colors))
-                embed.set_footer(text="Aevus: &Help")
+                embed.set_footer(text="Aevus: Q Help")
                 await asyncio.sleep(1)
                 await channel.send(embed=embed)
     else:
@@ -1467,7 +1508,7 @@ async def on_member_join(member):
                         title=f"Welcome to {member.guild.name}",
                         description=f"{member.guild.name} is moderated by iQ.",
                         color=random.choice(colors))
-                    embed.set_footer(text="Aevus: &Help")
+                    embed.set_footer(text="Aevus: Q Help")
                     await asyncio.sleep(1)
                     await channel.send(embed=embed)
                 else:
@@ -1477,7 +1518,7 @@ async def on_member_join(member):
                         description=
                         f"{str(welcomemessage)}.{member.guild.name} is moderated by iQ.",
                         color=random.choice(colors))
-                    embed.set_footer(text="Aevus: &Help")
+                    embed.set_footer(text="Aevus: Q Help")
                     await asyncio.sleep(1)
                     await channel.send(embed=embed)
             else:
@@ -1496,7 +1537,7 @@ async def on_member_join(member):
                         title=f"Welcome to {member.guild.name}",
                         description=f"{member.guild.name} is moderated by iQ.",
                         color=random.choice(colors))
-                    embed.set_footer(text="Aevus: &Help")
+                    embed.set_footer(text="Aevus: Q Help")
                     await asyncio.sleep(1)
                     await channel.send(embed=embed)
                 else:
@@ -1506,7 +1547,7 @@ async def on_member_join(member):
                         description=
                         f"{str(welcomemessage)}.{member.guild.name} is moderated by iQ.",
                         color=random.choice(colors))
-                    embed.set_footer(text="Aevus: &Help")
+                    embed.set_footer(text="Aevus: Q Help")
                     await asyncio.sleep(1)
                     await channel.send(embed=embed)
 
@@ -1579,6 +1620,318 @@ async def claim(ctx, code: str):
             await ctx.send("`Already Used`")
 
 @bot.command()
+async def Lottery(ctx):
+  userinv = db.collection("UserData").document(str(ctx.author.id)).collection("Inventory").document("lotteryticket")
+  if userinv.get().exists:
+    amount = u'{}'.format(userinv.get({u'Amount'}).to_dict()['Amount'])
+    if int(amount) >= 1:
+      amount = int(amount)-1
+      userinv.set({
+            u'Amount': int(amount)
+          }, merge=True)
+      chance = random.randrange(0, 101)
+      if chance >= 95:
+        prize = random.randrange(300, 1000)
+        await ctx.send(f"||**JACKPOT WON** - YOU WON ${prize} - **JACKPOT WON**||")
+        userdata = db.collection("UserData").document(str(ctx.author.id))
+        xp = u'{}'.format(userdata.get({u'XP'}).to_dict()['XP'])
+        xp = int(xp) + random.randrange(50, 100)
+        if int(xp)>1000:
+          level = u'{}'.format(userdata.get({u'Level'}).to_dict()['Level'])
+          level = int(level) + 1
+          userdata.set({
+            u'Level': int(level)
+          }, merge=True)
+          xp = 0
+        
+        cash = u'{}'.format(userdata.get({u'Cash'}).to_dict()['Cash'])
+        cash = int(cash) + prize
+        userdata.set({
+          u'Cash': cash,
+          u'XP': xp 
+        }, merge=True)
+      elif  95 > chance >= 20 :
+        prize = random.randrange(10, 45)
+        await ctx.send(f"||Better luck next time. You earned just ${prize}||")
+        userdata = db.collection("UserData").document(str(ctx.author.id))
+        xp = u'{}'.format(userdata.get({u'XP'}).to_dict()['XP'])
+        xp = int(xp) + random.randrange(10, 30)
+        if int(xp)>1000:
+          level = u'{}'.format(userdata.get({u'Level'}).to_dict()['Level'])
+          level = int(level) + 1
+          userdata.set({
+            u'Level': int(level)
+          }, merge=True)
+          xp = 0
+        
+        cash = u'{}'.format(userdata.get({u'Cash'}).to_dict()['Cash'])
+        cash = int(cash) + prize
+        userdata.set({
+          u'Cash': cash,
+          u'XP': xp 
+        }, merge=True)
+      elif chance < 20:
+        prize = random.randrange(100, 150)
+        await ctx.send(f"||You earned ${prize}! Not bad||")
+        userdata = db.collection("UserData").document(str(ctx.author.id))
+        xp = u'{}'.format(userdata.get({u'XP'}).to_dict()['XP'])
+        xp = int(xp) + random.randrange(30, 50)
+        if int(xp)>1000:
+          level = u'{}'.format(userdata.get({u'Level'}).to_dict()['Level'])
+          level = int(level) + 1
+          userdata.set({
+            u'Level': int(level)
+          }, merge=True)
+          xp = 0
+        
+        cash = u'{}'.format(userdata.get({u'Cash'}).to_dict()['Cash'])
+        cash = int(cash) + prize
+        userdata.set({
+          u'Cash': cash,
+          u'XP': xp 
+        }, merge=True)
+    else:
+      await ctx.send("`lotteryticket needed`")
+  else:
+    await ctx.send("`lotteryticket needed`")
+
+@bot.command()
+async def Carnival(ctx):
+  userinv = db.collection("UserData").document(str(ctx.author.id)).collection("Inventory").document("carnivalticket")
+  if userinv.get().exists:
+    amount = u'{}'.format(userinv.get({u'Amount'}).to_dict()['Amount'])
+    if int(amount) >= 1:
+      amount = int(amount)-1
+      userinv.set({
+            u'Amount': int(amount)
+          }, merge=True)
+      chance = random.randrange(0, 101)
+      if chance >= 60:
+        prize = random.randrange(50, 120)
+        await ctx.send(f"||**JACKPOT WON** - YOU WON ${prize} - **JACKPOT WON**||")
+        userdata = db.collection("UserData").document(str(ctx.author.id))
+        xp = u'{}'.format(userdata.get({u'XP'}).to_dict()['XP'])
+        xp = int(xp) + random.randrange(30, 60)
+        if int(xp)>1000:
+          level = u'{}'.format(userdata.get({u'Level'}).to_dict()['Level'])
+          level = int(level) + 1
+          userdata.set({
+            u'Level': int(level)
+          }, merge=True)
+          xp = 0
+        
+        cash = u'{}'.format(userdata.get({u'Cash'}).to_dict()['Cash'])
+        cash = int(cash) + prize
+        userdata.set({
+          u'Cash': cash,
+          u'XP': xp 
+        }, merge=True)
+      else:
+        prize = random.randrange(10, 45)
+        await ctx.send(f"||Better luck next time. You earned just ${prize}||")
+        userdata = db.collection("UserData").document(str(ctx.author.id))
+        xp = u'{}'.format(userdata.get({u'XP'}).to_dict()['XP'])
+        xp = int(xp) + random.randrange(10, 30)
+        if int(xp)>1000:
+          level = u'{}'.format(userdata.get({u'Level'}).to_dict()['Level'])
+          level = int(level) + 1
+          userdata.set({
+            u'Level': int(level)
+          }, merge=True)
+          xp = 0
+        
+        cash = u'{}'.format(userdata.get({u'Cash'}).to_dict()['Cash'])
+        cash = int(cash) + prize
+        userdata.set({
+          u'Cash': cash,
+          u'XP': xp 
+        }, merge=True)
+    else:
+      await ctx.send("`carnivalticket needed`")
+  else:
+    await ctx.send("`carnivalticket needed`")
+
+@bot.command()
+@commands.cooldown(1, 1800, commands.BucketType.user)
+async def Read(ctx):
+  gained = random.randrange(30, 60)
+  userdata = db.collection("UserData").document(str(ctx.author.id))
+  xp = u'{}'.format(userdata.get({u'XP'}).to_dict()['XP'])
+  xp = int(xp) + gained
+  await ctx.send(f"<@{ctx.author.id}> gained {gained} xp from reading")
+  if int(xp)>1000:
+    level = u'{}'.format(userdata.get({u'Level'}).to_dict()['Level'])
+    level = int(level) + 1
+    userdata.set({
+      u'Level': int(level)
+    }, merge=True)
+    xp = 0
+  userdata.set({
+    u'XP': xp 
+  }, merge=True)
+
+@bot.command()
+async def Rob(ctx,rob="none"):
+  if rob == "Bank":
+    userdata = db.collection("UserData").document(str(ctx.author.id))
+    level = u'{}'.format(userdata.get({u'Level'}).to_dict()['Level'])
+    if int(level) > 1:
+      chance = random.randrange(0, 101)
+      if chance >= 50:
+        prize = random.randrange(800, 1200)
+        cash = u'{}'.format(userdata.get({u'Cash'}).to_dict()['Cash'])
+        cash = int(cash) + prize
+        xp = u'{}'.format(userdata.get({u'XP'}).to_dict()['XP'])
+        xp = int(xp) + random.randrange(100, 200)
+        if int(xp)>1000:
+            level = u'{}'.format(userdata.get({u'Level'}).to_dict()['Level'])
+            level = int(level) + 1
+            userdata.set({
+              u'Level': int(level)
+            }, merge=True)
+            xp = 0
+        userdata.set({
+              u'Cash': cash,
+              u'XP': xp,
+        }, merge=True)
+        await ctx.send(f"Robbery successful ${prize}")
+      else:
+        userdata.set({
+              u'Cash': 0,
+              u'Level': 1,
+              u'XP': 0,
+        }, merge=True)
+        await ctx.send("**rip**")
+    else:
+        await ctx.send("`You must be level 2 and above to rob Bank`")
+  elif rob == "Store":
+    userdata = db.collection("UserData").document(str(ctx.author.id))
+    level = u'{}'.format(userdata.get({u'Level'}).to_dict()['Level'])
+    if int(level) > 0:
+      chance = random.randrange(0, 101)
+      if chance >= 25:
+        prize = random.randrange(150, 450)
+        cash = u'{}'.format(userdata.get({u'Cash'}).to_dict()['Cash'])
+        cash = int(cash) + prize
+        xp = u'{}'.format(userdata.get({u'XP'}).to_dict()['XP'])
+        xp = int(xp) + random.randrange(50, 100)
+        if int(xp)>1000:
+            level = u'{}'.format(userdata.get({u'Level'}).to_dict()['Level'])
+            level = int(level) + 1
+            userdata.set({
+              u'Level': int(level)
+            }, merge=True)
+            xp = 0
+        userdata.set({
+              u'Cash': cash,
+              u'XP': xp,
+        }, merge=True)
+        await ctx.send(f"Robbery successful ${prize}")
+      else:
+        userdata.set({
+              u'Cash': 0,
+              u'Level': 1,
+              u'XP': 0,
+        }, merge=True)
+        await ctx.send("**rip**")
+    else:
+        await ctx.send("`You must be level 1 and above to rob`")
+  elif rob == "Bot":
+    userdata = db.collection("UserData").document(str(ctx.author.id))
+    level = u'{}'.format(userdata.get({u'Level'}).to_dict()['Level'])
+    if int(level) > 3:
+      chance = random.randrange(0, 101)
+      if chance >= 80:
+        prize = random.randrange(10000, 50000)
+        cash = u'{}'.format(userdata.get({u'Cash'}).to_dict()['Cash'])
+        cash = int(cash) + prize
+        xp = u'{}'.format(userdata.get({u'XP'}).to_dict()['XP'])
+        xp = int(xp) + random.randrange(1000, 2000)
+        if int(xp)>1000:
+            level = u'{}'.format(userdata.get({u'Level'}).to_dict()['Level'])
+            level = int(level) + 1
+            userdata.set({
+              u'Level': int(level)
+            }, merge=True)
+            xp = 0
+        userdata.set({
+              u'Cash': cash,
+              u'XP': xp,
+        }, merge=True)
+        await ctx.send(f"Robbery successful ${prize}")
+      else:
+        userdata.set({
+              u'Cash': 0,
+              u'Level': 1,
+              u'XP': 0,
+        }, merge=True)
+        await ctx.send("**rip**")
+    else:
+        await ctx.send("`You must be level 4 and above to rob`")
+  else:
+    await ctx.send("What do you wish to rob? `Bank` `Store`")
+
+  
+
+@bot.command()
+@commands.cooldown(1, 43200, commands.BucketType.user)
+async def Steal(ctx,member:discord.Member):
+  chance = random.randrange(0, 101)
+  if chance >= 70:  
+    userdata = db.collection("UserData").document(str(ctx.author.id))
+    robbeddata = db.collection("UserData").document(str(member.id))
+    robbercash = u'{}'.format(userdata.get({u'Cash'}).to_dict()['Cash'])
+    stolecash = u'{}'.format(robbeddata.get({u'Cash'}).to_dict()['Cash'])
+    percentstole = random.randrange(10, 20)
+    moneystole = round(int(stolecash)/percentstole)
+    stolecash = int(stolecash) - moneystole
+    robbercash = int(robbercash) + moneystole
+    robbeddata.set({
+            u'Cash': stolecash,
+    }, merge=True)
+    xp = u'{}'.format(userdata.get({u'XP'}).to_dict()['XP'])
+    xp = int(xp) + random.randrange(20, 30)
+    if int(xp)>1000:
+        level = u'{}'.format(userdata.get({u'Level'}).to_dict()['Level'])
+        level = int(level) + 1
+        userdata.set({
+          u'Level': int(level)
+        }, merge=True)
+        xp = 0
+    userdata.set({
+            u'Cash': robbercash,
+            u'XP': xp,
+    }, merge=True)
+    await ctx.send(f"Stole ${moneystole} from <@{member.id}>.  {int(percentstole)}%")
+  else:
+    userdata = db.collection("UserData").document(str(member.id))
+    robbeddata = db.collection("UserData").document(str(ctx.author.id))
+    robbercash = u'{}'.format(userdata.get({u'Cash'}).to_dict()['Cash'])
+    stolecash = u'{}'.format(robbeddata.get({u'Cash'}).to_dict()['Cash'])
+    percentstole = random.randrange(1, 10)
+    moneystole = round(int(stolecash)/percentstole)
+    stolecash = int(stolecash) - moneystole
+    robbercash = int(robbercash) + moneystole
+    robbeddata.set({
+            u'Cash': stolecash,
+    }, merge=True)
+    xp = u'{}'.format(userdata.get({u'XP'}).to_dict()['XP'])
+    xp = int(xp) + random.randrange(100, 200)
+    if int(xp)>1000:
+        level = u'{}'.format(userdata.get({u'Level'}).to_dict()['Level'])
+        level = int(level) + 1
+        userdata.set({
+          u'Level': int(level)
+        }, merge=True)
+        xp = 0
+    userdata.set({
+            u'Cash': robbercash,
+            u'XP': xp,
+    }, merge=True)
+    await ctx.send(f"Failed to rob <@{member.id}>.  {int(percentstole)}%")
+  
+
+@bot.command()
 async def Buy(ctx,name:str):
   storestatus = db.collection("ServerData").document("Settings")
   storeonline = u'{}'.format(storestatus.get({u'Store'}).to_dict()['Store'])
@@ -1601,7 +1954,7 @@ async def Buy(ctx,name:str):
           }, merge=True)
           userinv = db.collection("UserData").document(str(ctx.author.id)).collection("Inventory").document(str(name))
           if userinv.get().exists:
-            quantity = u'{}'.format(userdata.get({u'Amount'}).to_dict()['Amount'])
+            quantity = u'{}'.format(userinv.get({u'Amount'}).to_dict()['Amount'])
             quantity = int(quantity) + 1
             userinv.set({
               u'Name': name,
@@ -1701,7 +2054,7 @@ async def Upgrade(ctx, upgradetype="Guild"):
                     description=
                     f"{ctx.guild.name} upgraded the server to PRO! Thanks to {ctx.author.mention}",
                     color=random.choice(colors))
-                embed.set_footer(text="Aevus: &Help")
+                embed.set_footer(text="Aevus: Q Help")
                 await modchannel.send(embed=embed)
             except:
                 await ctx.send(
@@ -1722,31 +2075,31 @@ async def on_message(message):
                     description=
                     f"You are muted from {message.guild.name}! Messages you send will be deleted immediately.",
                     color=random.choice(colors))
-                embed.set_footer(text="Aevus: &Help")
+                embed.set_footer(text="Aevus: Q Help")
                 await asyncio.sleep(1)
                 await channel.send(embed=embed)
             except:
                 pass
         else:
-            if message.content.startswith('&'):
+            if message.content.startswith('Q '):
                 f = open("status.txt", "r")
                 status = f.read()
                 if status == "1":
                     await bot.process_commands(message)
-                elif message.content.startswith('&Admin'):
+                elif message.content.startswith('Q Admin'):
                     await bot.process_commands(message)
                 else:
                     await message.channel.send(
                         "`IQ is currently offline, please try again later!`")
             elif message.content.startswith('Q '):
-                      await message.channel.send("`prefix changed from Q Command to &Command`")
+                      await message.channel.send("`prefix changed from Q Command to Q Command`")
     except:
-        if message.content.startswith('&'):
+        if message.content.startswith('Q '):
             f = open("status.txt", "r")
             status = f.read()
             if status == "1":
                 await bot.process_commands(message)
-            elif message.content.startswith('&Admin'):
+            elif message.content.startswith('Q Admin'):
                 await bot.process_commands(message)
             else:
                 await message.channel.send(
@@ -1770,7 +2123,7 @@ async def Mute(ctx, members: discord.Member, *, reason):
                 description=
                 f"{members.mention} has been muted for {reason} by {ctx.author.mention}",
                 color=random.choice(colors))
-            embed.set_footer(text="Aevus: &Help")
+            embed.set_footer(text="Aevus: Q Help")
             await modchannel.send(embed=embed)
     else:
         role = discord.utils.find(lambda r: r.name == f'{moderationRole}',
@@ -1788,7 +2141,7 @@ async def Mute(ctx, members: discord.Member, *, reason):
                     description=
                     f"{members.mention} has been muted for **{reason}** by {ctx.author.mention}",
                     color=random.choice(colors))
-                embed.set_footer(text="Aevus: &Help")
+                embed.set_footer(text="Aevus: Q Help")
                 await modchannel.send(embed=embed)
         else:
             await ctx.send("`Missing Permissions`")
@@ -1814,7 +2167,7 @@ async def UnMute(ctx, member: discord.Member):
                 description=
                 f"{member.mention} has been unmuted by {ctx.author.mention}",
                 color=random.choice(colors))
-            embed.set_footer(text="Aevus: &Help")
+            embed.set_footer(text="Aevus: Q Help")
             await modchannel.send(embed=embed)
     else:
         role = discord.utils.find(lambda r: r.name == f'{moderationRole}',
@@ -1832,7 +2185,7 @@ async def UnMute(ctx, member: discord.Member):
                     description=
                     f"{member.mention} has been unmuted by {ctx.author.mention}",
                     color=random.choice(colors))
-                embed.set_footer(text="Aevus: &Help")
+                embed.set_footer(text="Aevus: Q Help")
                 await modchannel.send(embed=embed)
         else:
             await ctx.send("`Missing Permissions`")
@@ -1950,13 +2303,15 @@ async def Work(ctx):
     pay = u'{}'.format(docs.get({u'Pay'}).to_dict()['Pay'])
     cash = int(cash) + int(pay)
     xp = int(xp) + random.randrange(5, 20)
-    if (int(xp)/1000).is_integer():
+    if int(xp)>1000:
       level = u'{}'.format(userref.get({u'Level'}).to_dict()['Level'])
       level = int(level) + 1
       userref.set({
         u'Level': int(level)
       }, merge=True)
+      xp = 0
     userref.set({
+      u'XP': int(xp),
       u'Cash': int(cash)
     }, merge=True)
     await ctx.send(f"`You were payed ${pay}. Keep up the great work! `")
@@ -2003,7 +2358,7 @@ async def Migrate(ctx):
         name="Support contacts!", value="<@408753256014282762>", inline=False)
   
 
-  embed.set_footer(text="Aevus: &Help")
+  embed.set_footer(text="Aevus: Q Help")
   await ctx.send(embed=embed)
 
 @bot.command()
@@ -2079,8 +2434,13 @@ async def Host(ctx):
         pass
     embed.add_field(
         name="Guild Members", value=str(true_member_count), inline=False)
-    embed.set_footer(text="Aevus: &Help")
+    embed.set_footer(text="Aevus: Q Help")
     await ctx.send(embed=embed)
+
+@bot.command()
+async def die(ctx):
+  await ctx.send("Close to 800 000 people die by suicide every year. Furthermore, for each suicide, there are more than 20 suicide attempts. Suicides and suicide attempts have a ripple effect that impacts on families, friends, colleagues, communities and societies. Suicides are preventable. Much can be done to prevent suicide at individual, community and national levels.")
+  await ctx.send("https://www.who.int/health-topics/suicide#tab=tab_1")
 
 @bot.command()
 async def Members(ctx):
@@ -2090,7 +2450,7 @@ async def Members(ctx):
         "iQ is the ultimate moderation bot! It has everything relating to server management. ",
         color=random.choice(colors))
     embed.set_thumbnail(url="https://i.imgur.com/f6XzjPE.png")
-    embed.set_footer(text="Aevus: &Help")
+    embed.set_footer(text="Aevus: Q Help")
     doc_ref = db.collection(u'Servers').document(f'{ctx.guild.id}')
     modrole = u'{}'.format(doc_ref.get({u'ModRole'}).to_dict()['ModRole'])
     for member in ctx.guild.members:
@@ -2100,12 +2460,18 @@ async def Members(ctx):
         else:
             role = discord.utils.find(lambda r: r.name == 'Muted',
                                       ctx.guild.roles)
+            modrole = discord.utils.find(lambda r: r.name == f'{modrole}',
+                                      ctx.guild.roles)
             if role in member.roles:
                 embed.add_field(
                     name=f"{str(member.name)}", value=f"Muted", inline=False)
             else:
+              if modrole in member.roles:
                 embed.add_field(
                     name=f"{str(member.name)}", value='User', inline=False)
+              else:
+                embed.add_field(
+                    name=f"{str(member.name)}", value='Moderator', inline=False)
     await ctx.send(embed=embed)
 
 @bot.command()
@@ -2184,62 +2550,35 @@ async def Weather(ctx, *, City):
         await ctx.send(embed=embed)
 
 @bot.command(pass_context=True)
-async def Help(ctx):
-    embed = discord.Embed(
-        title="iQ",
+async def Help(ctx,helptype = "None"):
+    if helptype == "None":
+      embed = discord.Embed(
+            description=
+            "```Aevus Commands```",
+            color=random.choice(colors))
+      embed.add_field(name="🔵  Moderation", value="`Q Help Moderation`\nex. Kick, Ban", inline=True)
+      embed.add_field(name="🟠  Currency", value="`Q Help Currency`\nex. Work, Job", inline=True)
+      embed.add_field(name="🟣  Games", value="`Q Help Moderation`\ncoming soon.", inline=True)
+      embed.add_field(name="🟡  Fun", value="`Q Help Moderation`\ncoming soon.", inline=True)
+      embed.add_field(name="🟢  Utility", value="`Q Help Moderation`\nex. Weather, Stock", inline=True)
+      embed.add_field(name="️🔴  Settings", value="`Q Help Moderation`\nex. Kick, Ban", inline=True)
+      await ctx.send(embed=embed)
+    elif helptype == "Moderation":
+      embed = discord.Embed(
+        title="Moderation Commands",
         description=
         "iQ is the ultimate moderation bot! It has everything relating to server management. ",
         color=random.choice(colors))
-    await asyncio.sleep(1)
-    embed.set_thumbnail(url="https://i.imgur.com/f6XzjPE.png")
-    embed.set_footer(text="iQ Bot by Aevus ")
-    embed.add_field(
-        name="Delete Messages", value="`&Clear (amount)`", inline=False)
-    embed.add_field(
-        name="Warn", value="`&Warn (mention user) (reason)`", inline=False)
-    embed.add_field(
-        name="Kick", value="`&Kick (mention user) (reason)`", inline=False)
-    embed.add_field(
-        name="Ban", value="`&Ban (mention user) (reason)`", inline=False)
-    embed.add_field(name="Mute", value="`&Mute (mention user) (Reason)`", inline=False)
-    embed.add_field(name="UnMute", value="`&UnMute (mention user)`", inline=False)
-    
-    embed.add_field(name="Weather", value="`&Weather (City)`", inline=False)
-    embed.add_field(
-        name="Invite Member to Server", value="`&Invite`", inline=False)
-    embed.add_field(name="AutoRole", value="`&Autorole`", inline=False)
-    embed.add_field(name="ModLog", value="`&ModLog`", inline=False)
-    embed.add_field(name="Welcome Message", value="`&WelcomeMessage`", inline=False)
-    embed.add_field(name="Mod Role", value="`&ModRole`", inline=False)
-    embed.add_field(name="Claim", value="`&Claim (code)`", inline=False)
-    embed.add_field(name="Boost", value="`&Boost`", inline=False)
-    embed.add_field(name="View Account", value="`&About`", inline=False)
-    embed.add_field(name="Server Info", value="`&Guild`", inline=False)
-    embed.add_field(name="Server Panel", value="`&Panel`", inline=False)
-    embed.add_field(name="Server Members", value="`&Members`", inline=False)
-    
-    embed.add_field(
-        name="Feedback", value="`&Feedback (Message)`", inline=False)
-    embed.add_field(
-        name="Jukebox Commands", value="-------------------", inline=False)
-    embed.add_field(
-        name="Play Song", value="`&Play (Song Name)`", inline=False)
-    embed.add_field(name="Skip Song", value="`&Skip`", inline=False)
-    embed.add_field(name="Jukebox Queue", value="`&Queue`", inline=False)
-    embed.add_field(name="Pause Jukebox", value="`&Pause`  ", inline=False)
-    embed.add_field(name="Resume Jukebox", value="`&Resume`  ", inline=False)
-    embed.add_field(name="Clear Jukebox", value="`&Stop`", inline=False)
-    embed.add_field(name="Current Song", value="`&Now`  ", inline=False)
-    embed.add_field(name="Resume Jukebox", value="`&Resume`  ", inline=False)
-    embed.add_field(name="Shuffle Jukebox", value="`&Shuffle`", inline=False)
-    embed.add_field(
-        name="Force Join VC", value="`&ForceJoin (VC Name)`", inline=False)
-    embed.add_field(
-        name="Advanced Commands", value="-------------------", inline=False)
-    embed.add_field(
-        name="Get Channel ID", value="`&Get Channel`", inline=False)
-    embed.add_field(name="Host Information", value="`&Host`  ", inline=False)
-    await ctx.send(embed=embed)
+      embed.add_field(name="Moderation", value="`Q Help Moderation`\nex. Kick, Ban", inline=False)
+      await ctx.send(embed=embed)
+    elif helptype == "Currency":
+      embed = discord.Embed(
+        title="Moderation Commands",
+        description=
+        "iQ is the ultimate moderation bot! It has everything relating to server management. ",
+        color=random.choice(colors))
+      embed.add_field(name="Moderation", value="`Q Help Moderation`\nex. Kick, Ban", inline=False)
+      await ctx.send(embed=embed)
 
 @bot.command()
 async def Logo(ctx):
@@ -2254,7 +2593,7 @@ async def Guild(ctx):
         color=random.choice(colors))
     await asyncio.sleep(1)
     embed.set_thumbnail(url="https://i.imgur.com/f6XzjPE.png")
-    embed.set_footer(text="Aevus: &Help")
+    embed.set_footer(text="Aevus: Q Help")
     doc_ref = db.collection(u'Servers').document(f'{ctx.guild.id}')
     if doc_ref.get().exists:
         embed.add_field(name="Name", value=f'{ctx.guild.name}', inline=False)
@@ -2286,7 +2625,7 @@ async def Panel(ctx):
         description=
         "iQ is the ultimate moderation bot! It has everything relating to server management. ",
         color=random.choice(colors))
-    embed.set_footer(text="Aevus: &Help")
+    embed.set_footer(text="Aevus: Q Help")
     doc_ref = db.collection(u'Servers').document(f'{ctx.guild.id}')
     if doc_ref.get().exists:
         autorole = u'{}'.format(
@@ -2295,7 +2634,7 @@ async def Panel(ctx):
             embed.add_field(
                 name="Auto Role",
                 value=
-                f'```Auto Role not set. You can do so by typing: &set AutoRole (rolename)```',
+                f'```Auto Role not set. You can do so by typing: Q set AutoRole (rolename)```',
                 inline=True)
         else:
             embed.add_field(
@@ -2310,7 +2649,7 @@ async def Panel(ctx):
             embed.add_field(
                 name="Mod Log",
                 value=
-                f'```Mod Log not set. You can do so by typing: &set ModLog (Channel ID)```',
+                f'```Mod Log not set. You can do so by typing: Q set ModLog (Channel ID)```',
                 inline=True)
         else:
             embed.add_field(
@@ -2324,7 +2663,7 @@ async def Panel(ctx):
             embed.add_field(
                 name="Mod Role",
                 value=
-                f'```Mod Role not set. You can do so by typing: &set ModRole (role name)```',
+                f'```Mod Role not set. You can do so by typing: Q set ModRole (role name)```',
                 inline=True)
         else:
             embed.add_field(
@@ -2339,7 +2678,7 @@ async def Panel(ctx):
             embed.add_field(
                 name="Welcome Message",
                 value=
-                f'```Welcome Message not set. You can do so by typing: &set WelcomeMessage (message)```',
+                f'```Welcome Message not set. You can do so by typing: Q set WelcomeMessage (message)```',
                 inline=True)
         else:
             embed.add_field(
