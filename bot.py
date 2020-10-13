@@ -678,35 +678,25 @@ async def setupacount(ctx):
                       u'XP': 0,
                       u'Joined': dt_string,
                       u'Claimed': dt_string,
+                      u'Prestige': 0,
                 })
                 print(f"{member.name} is in")
     await ctx.channel.purge(limit=1)
 
 @bot.command()
-async def daily(ctx):
-  docs = db.collection(u'UserData').document(str(ctx.author.id))
-  claimed = u'{}'.format(docs.get({u'Claimed'}).to_dict()['Claimed']) 
-  dt_string = datetime.now().strftime("%d/%m/%Y")
-  if str(claimed) == dt_string:
-    await ctx.send('`You can only claim every 24 hours!`')
-  else:  
-    cash = u'{}'.format(docs.get({u'Cash'}).to_dict()['Cash'])
-    level = u'{}'.format(docs.get({u'Level'}).to_dict()['Level'])
-    if int(level) < 11:
-      earning = random.randrange(0, 11)
-    else:
-      earning = random.randrange(0, int(level))
-    cash = int(cash) + earning
-    docs.set({
-      u'Cash': cash,
-      u'Claimed': dt_string,
-    },merge=True)
-    embed = discord.Embed(
-        title="Daily Claimed",
-        description=f'You were paid ${str(earning)}. Check back tomorrow!',
-        color=random.choice(colors))
-    await ctx.send(embed=embed)
-    
+async def addfield(ctx):
+    for member in ctx.guild.members:
+      docs = db.collection(u'UserData').document(str(member.id))
+      if member.bot:
+        pass
+      else:
+        print(f"Creating account for: {member.name}")
+        docs.set({
+          u'Prestige': 0,
+        })
+        print(f"{member.name} is in")
+    await ctx.channel.purge(limit=1)
+   
 @bot.command()
 async def ping(ctx):
     ping = round(bot.latency * 1000)
@@ -868,225 +858,90 @@ async def Set(ctx, choice='none', *, field='none'):
         await ctx.send('`Mod Log Successfully Set`')
 
 @bot.command()
-async def server(ctx):
-    await ctx.send(ctx.guild.id)
-
-@bot.command()
-async def BuyStock(ctx, stocksymbol: str, amount: int):
-  docus = db.collection(u'Servers').document(str(ctx.guild.id))
-  pro = u'{}'.format(docus.get({u'Pro'}).to_dict()['Pro'])
-  if pro == "Pro":
-    q = requests.get('https://www.alphavantage.co/query?function=SYMBOL_SEARCH&keywords='+stocksymbol+'&apikey=QWOU4B1BS6VHRKOF')
-    f = q.json()
-    fe = f["bestMatches"][0]
-    fn = fe["2. name"]
-    x = fe["1. symbol"]
-    r = requests.get('https://finnhub.io/api/v1/quote?symbol=' + x +
-                      '&token=bre3nkfrh5rckh454te0')
-    j = r.json()
-    if "error" in j:
-      await ctx.send(j['error'])
-    #defs
-    docs = db.collection(u'UserData').document(str(ctx.author.id))
-    cash = u'{}'.format(docs.get({u'Cash'}).to_dict()['Cash'])
-    shareprice = j["c"]
-    if amount < int(shareprice):
-      await ctx.send(f"`Purchase amount must be more than share price`")
+async def Mute(ctx, members: discord.Member, *, reason):
+    docs = db.collection(u'Servers').document(str(ctx.author.guild.id))
+    moderationRole = u'{}'.format(
+            docs.get({u'ModRole'}).to_dict()['ModRole'])
+    if str(moderationRole) == 'None':
+        rolee = discord.utils.get(ctx.guild.roles, name="Muted")
+        await members.add_roles(rolee)
+        if docs.get().exists:
+            server = u'{}'.format(
+                docs.get(
+                    {u'ModerationChannel'}).to_dict()['ModerationChannel'])
+            modchannel = bot.get_channel(int(server))
+            embed = discord.Embed(
+                title=f"Muted",
+                description=
+                f"{members.mention} has been muted for {reason} by {ctx.author.mention}",
+                color=random.choice(colors))
+            embed.set_footer(text="Aevus: Q Help")
+            await modchannel.send(embed=embed)
     else:
-      if int(cash) < amount:
-        await ctx.send("`Purchase amount exceeds balance`")
-      else:
-        stockdoc = db.collection(u'UserData').document(str(ctx.author.id)).collection(u"Stocks").document(str(x))
-        sharesbought = amount/int(shareprice)
-        sharesbought = round(sharesbought)
-        spent = sharesbought * int(shareprice)
-        moneyafterpurchase = int(cash) - spent
-        docs.set({
-                u'Cash': int(moneyafterpurchase),
-        }, merge=True)
-        if stockdoc.get().exists:
-          sharesowned = u'{}'.format(stockdoc.get({u'Shares'}).to_dict()['Shares'])
-          sharesowned = sharesbought + int(sharesowned)
-          stockdoc.set({
-                u'Shares': int(sharesowned),
-          }, merge=True)
-          await ctx.send(f'`{sharesbought} shares of {str(fn)} bought at {str(shareprice)} `')
+        role = discord.utils.find(lambda r: r.name == f'{moderationRole}',
+                                  ctx.guild.roles)
+        if role in ctx.author.roles:
+            rolee = discord.utils.get(ctx.guild.roles, name="Muted")
+            await members.add_roles(rolee)
+            if docs.get().exists:
+                server = u'{}'.format(
+                    docs.get(
+                        {u'ModerationChannel'}).to_dict()['ModerationChannel'])
+                modchannel = bot.get_channel(int(server))
+                embed = discord.Embed(
+                    title=f"Muted",
+                    description=
+                    f"{members.mention} has been muted for **{reason}** by {ctx.author.mention}",
+                    color=random.choice(colors))
+                embed.set_footer(text="Aevus: Q Help")
+                await modchannel.send(embed=embed)
         else:
-          stockdoc.set({
-                u'Shares': int(sharesbought),
-          }, merge=True)
-          await ctx.send(f'`{sharesbought} shares of {str(fn)} bought at {str(shareprice)} `')
-  else:
-    await ctx.send("`Aevus Pro Access required`")
-      
+            await ctx.send("`Missing Permissions`")
+
 @bot.command()
-async def SellStock(ctx, stocksymbol: str, amount: int):
-  docus = db.collection(u'Servers').document(str(ctx.guild.id))
-  pro = u'{}'.format(docus.get({u'Pro'}).to_dict()['Pro'])
-  if pro == "Pro":  
-    q = requests.get('https://www.alphavantage.co/query?function=SYMBOL_SEARCH&keywords='+stocksymbol+'&apikey=QWOU4B1BS6VHRKOF')
-    f = q.json()
-    fe = f["bestMatches"][0]
-    fn = fe["2. name"]
-    x = fe["1. symbol"]
-    r = requests.get('https://finnhub.io/api/v1/quote?symbol=' + x +
-                      '&token=bre3nkfrh5rckh454te0')
-    j = r.json()
-    if "error" in j:
-      await ctx.send(j['error'])
-    shareprice = j["c"]
-    sharessold = amount/int(shareprice)
-    sharessold = round(sharessold)
-    cashearned = int(sharessold) * int(shareprice)
-    if int(amount) < int(shareprice):
-      await ctx.send(f"`Sell amount must be more than share price`")
+async def UnMute(ctx, member: discord.Member):
+    docs = db.collection(u'Servers').document(str(ctx.message.guild.id))
+    try:
+        moderationRole = u'{}'.format(
+            docs.get({u'ModRole'}).to_dict()['ModRole'])
+    except:
+        moderationRole = 'None'
+    if str(moderationRole) == 'None':
+        rolee = discord.utils.get(ctx.guild.roles, name="Muted")
+        await member.remove_roles(rolee)
+        if docs.get().exists:
+            server = u'{}'.format(
+                docs.get(
+                    {u'ModerationChannel'}).to_dict()['ModerationChannel'])
+            modchannel = bot.get_channel(int(server))
+            embed = discord.Embed(
+                title=f"UnMuted",
+                description=
+                f"{member.mention} has been unmuted by {ctx.author.mention}",
+                color=random.choice(colors))
+            embed.set_footer(text="Aevus: Q Help")
+            await modchannel.send(embed=embed)
     else:
-      stockdoc = db.collection(u'UserData').document(str(ctx.author.id)).collection(u"Stocks").document(str(x))
-      if stockdoc.get().exists:
-        sharesowned = u'{}'.format(stockdoc.get({u'Shares'}).to_dict()['Shares'])
-        if int(sharesowned) < int(sharessold):
-          if int(sharesowned) < 1:
-            await ctx.send('`You dont own any shares of the requested stock`')
-          else:
-            while int(sharesowned) < int(sharessold):
-              sharessold = sharessold - 1
-            cashearned = int(sharessold) * int(shareprice)
-            sharesowned = int(sharesowned) - sharessold
-            docs = db.collection(u'UserData').document(str(ctx.author.id))
-            cash = u'{}'.format(docs.get({u'Cash'}).to_dict()['Cash'])
-            cashearned = cashearned + int(cash)
-            docs.set({
-                    u'Cash': int(cashearned),
-            }, merge=True)
-            
-            stockdoc.set({
-                    u'Shares': int(sharesowned),
-            }, merge=True)
-            await ctx.send(f'`{sharessold} shares sold`')
-        else:  
-          sharesowned = int(sharesowned) - sharessold
-          docs = db.collection(u'UserData').document(str(ctx.author.id))
-          cash = u'{}'.format(docs.get({u'Cash'}).to_dict()['Cash'])
-          cashearned = cashearned + int(cash)
-          docs.set({
-                  u'Cash': int(cashearned),
-          }, merge=True)
-          
-          stockdoc.set({
-                  u'Shares': int(sharesowned),
-          }, merge=True)
-          await ctx.send(f'`{sharessold} shares sold`')
-      else:
-        await ctx.send('`You dont own any shares of the requested stock`')
-  else:
-    await ctx.send("`Aevus Pro Access required`")
-
-@bot.command()
-async def User(ctx,member: discord.Member):
-    embed = discord.Embed(
-        title=f"{member.name}",
-        description=
-        "iQ is the ultimate moderation bot! It has everything relating to server management. ",
-        color=random.choice(colors))
-    await asyncio.sleep(1)
-    embed.set_thumbnail(url="https://i.imgur.com/f6XzjPE.png")
-    embed.set_footer(text="Aevus: Q Help")
-    doc_ref = db.collection(u'UserData').document(f'{member.id}')
-    if doc_ref.get().exists:
-        embed.add_field(name="Name", value=f'{member.name}', inline=False)
-        cash = u'{}'.format(doc_ref.get({u'Cash'}).to_dict()['Cash'])
-        embed.add_field(name="Cash", value=f'{str(cash)}', inline=False)
-        level = u'{}'.format(doc_ref.get({u'Level'}).to_dict()['Level'])
-        embed.add_field(name="Level", value=f'{str(level)}', inline=False)
-        boost = u'{}'.format(doc_ref.get({u'Boosts'}).to_dict()['Boosts'])
-        xp = u'{}'.format(doc_ref.get({u'XP'}).to_dict()['XP'])
-        embed.add_field(name="XP", value=f'{str(xp)}', inline=False)
-        embed.add_field(name="Upgrade Tokens", value=f'{str(boost)}', inline=False)
-        #pro = u'{}'.format(doc_ref.get({u'Pro'}).to_dict()['Pro'])
-        #embed.add_field(name="Account Type", value=f'{str(pro)}', inline=False)
-        joined = u'{}'.format(doc_ref.get({u'Joined'}).to_dict()['Joined'])
-        embed.add_field(name="Joined", value=f'{str(joined)}', inline=False)
-        users_ref = db.collection("UserData").document(str(member.id)).collection(u"Stocks")
-        docs = users_ref.stream()
-        for doc in docs:
-            stock = doc.id
-            r = requests.get('https://finnhub.io/api/v1/quote?symbol=' +
-                             str(stock) + '&token=bre3nkfrh5rckh454te0')
-            j = r.json()
-            sharevalue = j['c']
-            stockRef = db.collection("UserData").document(str(member.id)).collection(u"Stocks").document(str(stock))
-            sharesownded = u'{}'.format(stockRef.get({u'Shares'}).to_dict()['Shares'])
-            shareownedvalue = int(sharesownded) * int(sharevalue)
-            embed.add_field(name=f"{str(stock)}", value=f'${str(shareownedvalue)}', inline=False)
-    await ctx.send(embed=embed)
-
-@bot.command()
-async def Profile(ctx):
-    embed = discord.Embed(
-        title=f"{ctx.author.name}",
-        description=
-        "iQ is the ultimate moderation bot! It has everything relating to server management. ",
-        color=random.choice(colors))
-    await asyncio.sleep(1)
-    embed.set_thumbnail(url="https://i.imgur.com/f6XzjPE.png")
-    embed.set_footer(text="Aevus: Q Help")
-    doc_ref = db.collection(u'UserData').document(f'{ctx.author.id}')
-    if doc_ref.get().exists:
-        embed.add_field(name="Name", value=f'{ctx.author.name}', inline=False)
-        cash = u'{}'.format(doc_ref.get({u'Cash'}).to_dict()['Cash'])
-        embed.add_field(name="Cash", value=f'{str(cash)}', inline=False)
-        level = u'{}'.format(doc_ref.get({u'Level'}).to_dict()['Level'])
-        embed.add_field(name="Level", value=f'{str(level)}', inline=False)
-        boost = u'{}'.format(doc_ref.get({u'Boosts'}).to_dict()['Boosts'])
-        xp = u'{}'.format(doc_ref.get({u'XP'}).to_dict()['XP'])
-        embed.add_field(name="XP", value=f'{str(xp)}', inline=False)
-        embed.add_field(name="Upgrade Tokens", value=f'{str(boost)}', inline=False)
-        #pro = u'{}'.format(doc_ref.get({u'Pro'}).to_dict()['Pro'])
-        #embed.add_field(name="Account Type", value=f'{str(pro)}', inline=False)
-        joined = u'{}'.format(doc_ref.get({u'Joined'}).to_dict()['Joined'])
-        embed.add_field(name="Joined", value=f'{str(joined)}', inline=False)
-        users_ref = db.collection("UserData").document(str(ctx.author.id)).collection(u"Stocks")
-        docs = users_ref.stream()
-        for doc in docs:
-            stock = doc.id
-            r = requests.get('https://finnhub.io/api/v1/quote?symbol=' +
-                             str(stock) + '&token=bre3nkfrh5rckh454te0')
-            j = r.json()
-            sharevalue = j['c']
-            stockRef = db.collection("UserData").document(str(ctx.author.id)).collection(u"Stocks").document(str(stock))
-            sharesownded = u'{}'.format(stockRef.get({u'Shares'}).to_dict()['Shares'])
-            shareownedvalue = int(sharesownded) * int(sharevalue)
-            embed.add_field(name=f"{str(stock)}", value=f'${str(shareownedvalue)}', inline=False)
-    await ctx.send(embed=embed)
-
-@bot.command()
-async def Stock(ctx, stocksymbol: str):
-    q = requests.get('https://www.alphavantage.co/query?function=SYMBOL_SEARCH&keywords='+stocksymbol+'&apikey=QWOU4B1BS6VHRKOF')
-    f = q.json()
-    fe = f["bestMatches"][0]
-    fn = fe["2. name"]
-    x = fe["1. symbol"]
-    r = requests.get('https://finnhub.io/api/v1/quote?symbol=' + x +
-                     '&token=bre3nkfrh5rckh454te0')
-    j = r.json()
-    if "error" in j:
-      await ctx.send(j['error'])
-    embed = discord.Embed(
-        title=f"{str(fn)}", description="Stock Analysis", color=random.choice(colors))
-    embed.set_author(
-        name=f"Invite Synapse!",
-        url="https://discord.com/oauth2/authorize?client_id=712515532682952735&permissions=457792&scope=bot",
-        icon_url=
-        "https://i.imgur.com/EbVR81i.png"
-    )
-    embed.set_thumbnail(url="https://i.imgur.com/EbVR81i.png")
-    embed.add_field(name="Current Price", value=j["c"], inline=False)
-    embed.add_field(name="Open Price", value=j["o"], inline=False)
-    embed.add_field(name="High Price", value=j["h"], inline=False)
-    embed.add_field(name="Low Price", value=j["l"], inline=False)
-    embed.add_field(name="Previous Close Price", value=j["pc"], inline=False)
-    embed.set_footer(text="Command by Synapse Bot. Check out Sybapse for more info!")
-    await ctx.send(embed=embed)
+        role = discord.utils.find(lambda r: r.name == f'{moderationRole}',
+                                  ctx.guild.roles)
+        if role in ctx.author.roles:
+            rolee = discord.utils.get(ctx.guild.roles, name="Muted")
+            await member.remove_roles(rolee)
+            if docs.get().exists:
+                server = u'{}'.format(
+                    docs.get(
+                        {u'ModerationChannel'}).to_dict()['ModerationChannel'])
+                modchannel = bot.get_channel(int(server))
+                embed = discord.Embed(
+                    title=f"UnMuted",
+                    description=
+                    f"{member.mention} has been unmuted by {ctx.author.mention}",
+                    color=random.choice(colors))
+                embed.set_footer(text="Aevus: Q Help")
+                await modchannel.send(embed=embed)
+        else:
+            await ctx.send("`Missing Permissions`")
+    role = discord.utils.get(ctx.guild.roles, name="Muted")
 
 @bot.command()
 async def clear(ctx, amount=5):
@@ -1424,6 +1279,185 @@ async def ban(ctx, member: discord.Member, reason=None):
         else:
             await ctx.send("`Missing Permissions`")
 
+@bot.command()
+async def Invite(ctx, member=None):
+    if member == None:
+        invitelink = await ctx.channel.create_invite(max_uses=1, unique=True)
+        await ctx.send(invitelink)
+    else:
+        channel = await member.create_dm()
+        #creating invite link
+        invitelink = await ctx.channel.create_invite(max_uses=1, unique=True)
+        #dming it to the person
+        await channel.send(invitelink)
+
+@bot.command()
+async def server(ctx):
+    await ctx.send(ctx.guild.id)
+
+@bot.command()
+async def User(ctx,member: discord.Member):
+    embed = discord.Embed(
+        title=f"{member.name}",
+        description=
+        "iQ is the ultimate moderation bot! It has everything relating to server management. ",
+        color=random.choice(colors))
+    await asyncio.sleep(1)
+    embed.set_thumbnail(url="https://i.imgur.com/f6XzjPE.png")
+    embed.set_footer(text="Aevus: Q Help")
+    doc_ref = db.collection(u'UserData').document(f'{member.id}')
+    if doc_ref.get().exists:
+        embed.add_field(name="Name", value=f'{member.name}', inline=False)
+        cash = u'{}'.format(doc_ref.get({u'Cash'}).to_dict()['Cash'])
+        embed.add_field(name="Cash", value=f'{str(cash)}', inline=False)
+        level = u'{}'.format(doc_ref.get({u'Level'}).to_dict()['Level'])
+        embed.add_field(name="Level", value=f'{str(level)}', inline=False)
+        boost = u'{}'.format(doc_ref.get({u'Boosts'}).to_dict()['Boosts'])
+        xp = u'{}'.format(doc_ref.get({u'XP'}).to_dict()['XP'])
+        embed.add_field(name="XP", value=f'{str(xp)}', inline=False)
+        embed.add_field(name="Upgrade Tokens", value=f'{str(boost)}', inline=False)
+        #pro = u'{}'.format(doc_ref.get({u'Pro'}).to_dict()['Pro'])
+        #embed.add_field(name="Account Type", value=f'{str(pro)}', inline=False)
+        joined = u'{}'.format(doc_ref.get({u'Joined'}).to_dict()['Joined'])
+        embed.add_field(name="Joined", value=f'{str(joined)}', inline=False)
+        users_ref = db.collection("UserData").document(str(member.id)).collection(u"Stocks")
+        docs = users_ref.stream()
+        for doc in docs:
+            stock = doc.id
+            r = requests.get('https://finnhub.io/api/v1/quote?symbol=' +
+                             str(stock) + '&token=bre3nkfrh5rckh454te0')
+            j = r.json()
+            sharevalue = j['c']
+            stockRef = db.collection("UserData").document(str(member.id)).collection(u"Stocks").document(str(stock))
+            sharesownded = u'{}'.format(stockRef.get({u'Shares'}).to_dict()['Shares'])
+            shareownedvalue = int(sharesownded) * int(sharevalue)
+            embed.add_field(name=f"{str(stock)}", value=f'${str(shareownedvalue)}', inline=False)
+    await ctx.send(embed=embed)
+
+@bot.command()
+async def Inventory(ctx):
+  embed = discord.Embed(
+        title=f"{ctx.author.name}",
+        description=
+        "iQ is the ultimate moderation bot! It has everything relating to server management. ",
+        color=random.choice(colors))
+  await asyncio.sleep(1)
+  embed.set_thumbnail(url="https://i.imgur.com/f6XzjPE.png")
+  embed.set_footer(text="Aevus: Q Help")
+  users_ref = db.collection("UserData").document(str(ctx.author.id)).collection(u"Inventory")
+  docs = users_ref.stream()
+  for doc in docs:
+        item = doc.id
+        stockRef = db.collection("UserData").document(str(ctx.author.id)).collection(u"Inventory").document(str(item))
+        itemamount = u'{}'.format(stockRef.get({u'Amount'}).to_dict()['Amount'])
+        embed.add_field(name=f"{str(item)}", value=f'{str(itemamount)}', inline=False)
+  await ctx.send(embed=embed)
+
+@bot.command()
+async def Profile(ctx):
+    embed = discord.Embed(
+        title=f"{ctx.author.name}",
+        description=
+        "iQ is the ultimate moderation bot! It has everything relating to server management. ",
+        color=random.choice(colors))
+    await asyncio.sleep(1)
+    embed.set_thumbnail(url="https://i.imgur.com/f6XzjPE.png")
+    embed.set_footer(text="Aevus: Q Help")
+    doc_ref = db.collection(u'UserData').document(f'{ctx.author.id}')
+    if doc_ref.get().exists:
+        embed.add_field(name="Name", value=f'{ctx.author.name}', inline=False)
+        cash = u'{}'.format(doc_ref.get({u'Cash'}).to_dict()['Cash'])
+        embed.add_field(name="Cash", value=f'{str(cash)}', inline=False)
+        level = u'{}'.format(doc_ref.get({u'Level'}).to_dict()['Level'])
+        embed.add_field(name="Level", value=f'{str(level)}', inline=False)
+        boost = u'{}'.format(doc_ref.get({u'Boosts'}).to_dict()['Boosts'])
+        xp = u'{}'.format(doc_ref.get({u'XP'}).to_dict()['XP'])
+        embed.add_field(name="XP", value=f'{str(xp)}', inline=False)
+        embed.add_field(name="Upgrade Tokens", value=f'{str(boost)}', inline=False)
+        #pro = u'{}'.format(doc_ref.get({u'Pro'}).to_dict()['Pro'])
+        #embed.add_field(name="Account Type", value=f'{str(pro)}', inline=False)
+        joined = u'{}'.format(doc_ref.get({u'Joined'}).to_dict()['Joined'])
+        embed.add_field(name="Joined", value=f'{str(joined)}', inline=False)
+        users_ref = db.collection("UserData").document(str(ctx.author.id)).collection(u"Stocks")
+        docs = users_ref.stream()
+        for doc in docs:
+            stock = doc.id
+            r = requests.get('https://finnhub.io/api/v1/quote?symbol=' +
+                             str(stock) + '&token=bre3nkfrh5rckh454te0')
+            j = r.json()
+            sharevalue = j['c']
+            stockRef = db.collection("UserData").document(str(ctx.author.id)).collection(u"Stocks").document(str(stock))
+            sharesownded = u'{}'.format(stockRef.get({u'Shares'}).to_dict()['Shares'])
+            shareownedvalue = int(sharesownded) * int(sharevalue)
+            embed.add_field(name=f"{str(stock)}", value=f'${str(shareownedvalue)}', inline=False)
+    await ctx.send(embed=embed)
+
+@bot.command()
+async def daily(ctx):
+  docs = db.collection(u'UserData').document(str(ctx.author.id))
+  claimed = u'{}'.format(docs.get({u'Claimed'}).to_dict()['Claimed']) 
+  dt_string = datetime.now().strftime("%d/%m/%Y")
+  if str(claimed) == dt_string:
+    await ctx.send('`You can only claim every 24 hours!`')
+  else:  
+    cash = u'{}'.format(docs.get({u'Cash'}).to_dict()['Cash'])
+    level = u'{}'.format(docs.get({u'Level'}).to_dict()['Level'])
+    if int(level) < 30:
+      earning = random.randrange(0, 50)
+    else:
+      earning = random.randrange(0, int(level))
+    cash = int(cash) + earning
+    docs.set({
+      u'Cash': cash,
+      u'Claimed': dt_string,
+    },merge=True)
+    embed = discord.Embed(
+        title="Daily Claimed",
+        description=f'You were paid ${str(earning)}. Check back tomorrow!',
+        color=random.choice(colors))
+    await ctx.send(embed=embed)
+
+@bot.command()
+@commands.cooldown(1, 5, commands.BucketType.user)
+async def luck(ctx):
+  docs = db.collection(u'UserData').document(str(ctx.author.id)) 
+  cash = u'{}'.format(docs.get({u'Cash'}).to_dict()['Cash'])
+  earning = random.randrange(-30, 50)
+  cash = int(cash) + earning
+  docs.set({
+    u'Cash': cash
+  },merge=True)
+  await ctx.send(f'Payout: ${str(earning)}')
+
+@bot.command()
+async def Stock(ctx, stocksymbol: str):
+    q = requests.get('https://www.alphavantage.co/query?function=SYMBOL_SEARCH&keywords='+stocksymbol+'&apikey=QWOU4B1BS6VHRKOF')
+    f = q.json()
+    fe = f["bestMatches"][0]
+    fn = fe["2. name"]
+    x = fe["1. symbol"]
+    r = requests.get('https://finnhub.io/api/v1/quote?symbol=' + x +
+                     '&token=bre3nkfrh5rckh454te0')
+    j = r.json()
+    if "error" in j:
+      await ctx.send(j['error'])
+    embed = discord.Embed(
+        title=f"{str(fn)}", description="Stock Analysis", color=random.choice(colors))
+    embed.set_author(
+        name=f"Invite Synapse!",
+        url="https://discord.com/oauth2/authorize?client_id=712515532682952735&permissions=457792&scope=bot",
+        icon_url=
+        "https://i.imgur.com/EbVR81i.png"
+    )
+    embed.set_thumbnail(url="https://i.imgur.com/EbVR81i.png")
+    embed.add_field(name="Current Price", value=j["c"], inline=False)
+    embed.add_field(name="Open Price", value=j["o"], inline=False)
+    embed.add_field(name="High Price", value=j["h"], inline=False)
+    embed.add_field(name="Low Price", value=j["l"], inline=False)
+    embed.add_field(name="Previous Close Price", value=j["pc"], inline=False)
+    embed.set_footer(text="Command by Synapse Bot. Check out Sybapse for more info!")
+    await ctx.send(embed=embed)
+
 @bot.event
 async def on_member_join(member):
     docs = db.collection(u'UserData').document(str(member.id))
@@ -1635,7 +1669,7 @@ async def Lottery(ctx):
         await ctx.send(f"||**JACKPOT WON** - YOU WON ${prize} - **JACKPOT WON**||")
         userdata = db.collection("UserData").document(str(ctx.author.id))
         xp = u'{}'.format(userdata.get({u'XP'}).to_dict()['XP'])
-        xp = int(xp) + random.randrange(50, 100)
+        xp = int(xp) + random.randrange(25, 40)
         if int(xp)>1000:
           level = u'{}'.format(userdata.get({u'Level'}).to_dict()['Level'])
           level = int(level) + 1
@@ -1655,7 +1689,7 @@ async def Lottery(ctx):
         await ctx.send(f"||Better luck next time. You earned just ${prize}||")
         userdata = db.collection("UserData").document(str(ctx.author.id))
         xp = u'{}'.format(userdata.get({u'XP'}).to_dict()['XP'])
-        xp = int(xp) + random.randrange(10, 30)
+        xp = int(xp) + random.randrange(5, 15)
         if int(xp)>1000:
           level = u'{}'.format(userdata.get({u'Level'}).to_dict()['Level'])
           level = int(level) + 1
@@ -1675,7 +1709,7 @@ async def Lottery(ctx):
         await ctx.send(f"||You earned ${prize}! Not bad||")
         userdata = db.collection("UserData").document(str(ctx.author.id))
         xp = u'{}'.format(userdata.get({u'XP'}).to_dict()['XP'])
-        xp = int(xp) + random.randrange(30, 50)
+        xp = int(xp) + random.randrange(10, 25)
         if int(xp)>1000:
           level = u'{}'.format(userdata.get({u'Level'}).to_dict()['Level'])
           level = int(level) + 1
@@ -1694,6 +1728,59 @@ async def Lottery(ctx):
       await ctx.send("`lotteryticket needed`")
   else:
     await ctx.send("`lotteryticket needed`")
+
+@bot.command()
+async def Fish(ctx):
+  userinv = db.collection("UserData").document(str(ctx.author.id)).collection("Inventory").document("fishingrod")
+  if userinv.get().exists:
+      chance = random.randrange(0, 101)
+      if chance >= 95:    
+        db.collection("UserData").document(str(ctx.author.id)).collection("Inventory").document("fishingrod").delete()
+        userdata = db.collection("UserData").document(str(ctx.author.id))
+        xp = u'{}'.format(userdata.get({u'XP'}).to_dict()['XP'])
+        xp = int(xp) + random.randrange(-20, 0)
+        await ctx.send(f"{ctx.author.mention} Fishing Rod Broke :(")
+      elif  95 > chance >= 20 :
+        prize = random.randrange(100, 300)
+        await ctx.send(f"{ctx.author.mention} You sold your catches for ${prize}")
+        userdata = db.collection("UserData").document(str(ctx.author.id))
+        xp = u'{}'.format(userdata.get({u'XP'}).to_dict()['XP'])
+        xp = int(xp) + random.randrange(5, 15)
+        if int(xp)>1000:
+          level = u'{}'.format(userdata.get({u'Level'}).to_dict()['Level'])
+          level = int(level) + 1
+          userdata.set({
+            u'Level': int(level)
+          }, merge=True)
+          xp = 0
+        cash = u'{}'.format(userdata.get({u'Cash'}).to_dict()['Cash'])
+        cash = int(cash) + prize
+        userdata.set({
+          u'Cash': cash,
+          u'XP': xp 
+        }, merge=True)
+      elif chance < 20:
+        prize = random.randrange(700, 1200)
+        await ctx.send(f"{ctx.author.mention} You sold your catches for ${prize}")
+        userdata = db.collection("UserData").document(str(ctx.author.id))
+        xp = u'{}'.format(userdata.get({u'XP'}).to_dict()['XP'])
+        xp = int(xp) + random.randrange(10, 25)
+        if int(xp)>1000:
+          level = u'{}'.format(userdata.get({u'Level'}).to_dict()['Level'])
+          level = int(level) + 1
+          userdata.set({
+            u'Level': int(level)
+          }, merge=True)
+          xp = 0
+        cash = u'{}'.format(userdata.get({u'Cash'}).to_dict()['Cash'])
+        cash = int(cash) + prize
+        userdata.set({
+          u'Cash': cash,
+          u'XP': xp 
+        }, merge=True)
+  else:
+    await ctx.send("`fishingrod needed`")
+
 
 @bot.command()
 async def Carnival(ctx):
@@ -1754,7 +1841,7 @@ async def Carnival(ctx):
 @bot.command()
 @commands.cooldown(1, 1800, commands.BucketType.user)
 async def Read(ctx):
-  gained = random.randrange(30, 60)
+  gained = random.randrange(20, 35)
   userdata = db.collection("UserData").document(str(ctx.author.id))
   xp = u'{}'.format(userdata.get({u'XP'}).to_dict()['XP'])
   xp = int(xp) + gained
@@ -1807,7 +1894,7 @@ async def Rob(ctx,rob="none"):
   elif rob == "Store":
     userdata = db.collection("UserData").document(str(ctx.author.id))
     level = u'{}'.format(userdata.get({u'Level'}).to_dict()['Level'])
-    if int(level) > 0:
+    if int(level) > 1:
       chance = random.randrange(0, 101)
       if chance >= 25:
         prize = random.randrange(150, 450)
@@ -1835,7 +1922,7 @@ async def Rob(ctx,rob="none"):
         }, merge=True)
         await ctx.send("**rip**")
     else:
-        await ctx.send("`You must be level 1 and above to rob`")
+        await ctx.send("`You must be level 2 and above to rob`")
   elif rob == "Bot":
     userdata = db.collection("UserData").document(str(ctx.author.id))
     level = u'{}'.format(userdata.get({u'Level'}).to_dict()['Level'])
@@ -1870,8 +1957,6 @@ async def Rob(ctx,rob="none"):
         await ctx.send("`You must be level 4 and above to rob`")
   else:
     await ctx.send("What do you wish to rob? `Bank` `Store`")
-
-  
 
 @bot.command()
 @commands.cooldown(1, 43200, commands.BucketType.user)
@@ -1930,7 +2015,6 @@ async def Steal(ctx,member:discord.Member):
     }, merge=True)
     await ctx.send(f"Failed to rob <@{member.id}>.  {int(percentstole)}%")
   
-
 @bot.command()
 async def Buy(ctx,name:str):
   storestatus = db.collection("ServerData").document("Settings")
@@ -1977,6 +2061,17 @@ async def Buy(ctx,name:str):
     await ctx.send("`Store Offline`")
 
 @bot.command()
+async def Use(ctx,name = "None"):
+  #store server check
+  userdata = db.collection("UserData").document(str(ctx.author.id)).collection("Inventory").document(str(name))
+  item = u'{}'.format(userdata.get({u'Name'}).to_dict()['Name'])
+  if str(item) == 'needle':
+    print("test")
+  else:
+    await ctx.send('`Item not found`')
+
+
+@bot.command()
 async def Store(ctx):
   #store server check
   storestatus = db.collection("ServerData").document("Settings")
@@ -1999,7 +2094,116 @@ async def Store(ctx):
     await ctx.send(embed=embed)
   else:
     await ctx.send('`❌ Store Offline`')
-  
+
+@bot.command()
+async def BuyStock(ctx, stocksymbol: str, amount: int):
+  docus = db.collection(u'Servers').document(str(ctx.guild.id))
+  pro = u'{}'.format(docus.get({u'Pro'}).to_dict()['Pro'])
+  if pro == "Pro":
+    q = requests.get('https://www.alphavantage.co/query?function=SYMBOL_SEARCH&keywords='+stocksymbol+'&apikey=QWOU4B1BS6VHRKOF')
+    f = q.json()
+    fe = f["bestMatches"][0]
+    fn = fe["2. name"]
+    x = fe["1. symbol"]
+    r = requests.get('https://finnhub.io/api/v1/quote?symbol=' + x +
+                      '&token=bre3nkfrh5rckh454te0')
+    j = r.json()
+    if "error" in j:
+      await ctx.send(j['error'])
+    #defs
+    docs = db.collection(u'UserData').document(str(ctx.author.id))
+    cash = u'{}'.format(docs.get({u'Cash'}).to_dict()['Cash'])
+    shareprice = j["c"]
+    if amount < int(shareprice):
+      await ctx.send(f"`Purchase amount must be more than share price`")
+    else:
+      if int(cash) < amount:
+        await ctx.send("`Purchase amount exceeds balance`")
+      else:
+        stockdoc = db.collection(u'UserData').document(str(ctx.author.id)).collection(u"Stocks").document(str(x))
+        sharesbought = amount/int(shareprice)
+        sharesbought = round(sharesbought)
+        spent = sharesbought * int(shareprice)
+        moneyafterpurchase = int(cash) - spent
+        docs.set({
+                u'Cash': int(moneyafterpurchase),
+        }, merge=True)
+        if stockdoc.get().exists:
+          sharesowned = u'{}'.format(stockdoc.get({u'Shares'}).to_dict()['Shares'])
+          sharesowned = sharesbought + int(sharesowned)
+          stockdoc.set({
+                u'Shares': int(sharesowned),
+          }, merge=True)
+          await ctx.send(f'`{sharesbought} shares of {str(fn)} bought at {str(shareprice)} `')
+        else:
+          stockdoc.set({
+                u'Shares': int(sharesbought),
+          }, merge=True)
+          await ctx.send(f'`{sharesbought} shares of {str(fn)} bought at {str(shareprice)} `')
+  else:
+    await ctx.send("`Aevus Pro Access required`")
+      
+@bot.command()
+async def SellStock(ctx, stocksymbol: str, amount: int):
+  docus = db.collection(u'Servers').document(str(ctx.guild.id))
+  pro = u'{}'.format(docus.get({u'Pro'}).to_dict()['Pro'])
+  if pro == "Pro":  
+    q = requests.get('https://www.alphavantage.co/query?function=SYMBOL_SEARCH&keywords='+stocksymbol+'&apikey=QWOU4B1BS6VHRKOF')
+    f = q.json()
+    fe = f["bestMatches"][0]
+    fn = fe["2. name"]
+    x = fe["1. symbol"]
+    r = requests.get('https://finnhub.io/api/v1/quote?symbol=' + x +
+                      '&token=bre3nkfrh5rckh454te0')
+    j = r.json()
+    if "error" in j:
+      await ctx.send(j['error'])
+    shareprice = j["c"]
+    sharessold = amount/int(shareprice)
+    sharessold = round(sharessold)
+    cashearned = int(sharessold) * int(shareprice)
+    if int(amount) < int(shareprice):
+      await ctx.send(f"`Sell amount must be more than share price`")
+    else:
+      stockdoc = db.collection(u'UserData').document(str(ctx.author.id)).collection(u"Stocks").document(str(x))
+      if stockdoc.get().exists:
+        sharesowned = u'{}'.format(stockdoc.get({u'Shares'}).to_dict()['Shares'])
+        if int(sharesowned) < int(sharessold):
+          if int(sharesowned) < 1:
+            await ctx.send('`You dont own any shares of the requested stock`')
+          else:
+            while int(sharesowned) < int(sharessold):
+              sharessold = sharessold - 1
+            cashearned = int(sharessold) * int(shareprice)
+            sharesowned = int(sharesowned) - sharessold
+            docs = db.collection(u'UserData').document(str(ctx.author.id))
+            cash = u'{}'.format(docs.get({u'Cash'}).to_dict()['Cash'])
+            cashearned = cashearned + int(cash)
+            docs.set({
+                    u'Cash': int(cashearned),
+            }, merge=True)
+            
+            stockdoc.set({
+                    u'Shares': int(sharesowned),
+            }, merge=True)
+            await ctx.send(f'`{sharessold} shares sold`')
+        else:  
+          sharesowned = int(sharesowned) - sharessold
+          docs = db.collection(u'UserData').document(str(ctx.author.id))
+          cash = u'{}'.format(docs.get({u'Cash'}).to_dict()['Cash'])
+          cashearned = cashearned + int(cash)
+          docs.set({
+                  u'Cash': int(cashearned),
+          }, merge=True)
+          
+          stockdoc.set({
+                  u'Shares': int(sharesowned),
+          }, merge=True)
+          await ctx.send(f'`{sharessold} shares sold`')
+      else:
+        await ctx.send('`You dont own any shares of the requested stock`')
+  else:
+    await ctx.send("`Aevus Pro Access required`")
 
 @bot.command()
 async def StoreAdd(ctx,name:str,cost:int,amount:int,objtype:str):
@@ -2104,104 +2308,6 @@ async def on_message(message):
             else:
                 await message.channel.send(
                     "`IQ is currently offline, please try again later!`")
-
-@bot.command()
-async def Mute(ctx, members: discord.Member, *, reason):
-    docs = db.collection(u'Servers').document(str(ctx.author.guild.id))
-    moderationRole = u'{}'.format(
-            docs.get({u'ModRole'}).to_dict()['ModRole'])
-    if str(moderationRole) == 'None':
-        rolee = discord.utils.get(ctx.guild.roles, name="Muted")
-        await members.add_roles(rolee)
-        if docs.get().exists:
-            server = u'{}'.format(
-                docs.get(
-                    {u'ModerationChannel'}).to_dict()['ModerationChannel'])
-            modchannel = bot.get_channel(int(server))
-            embed = discord.Embed(
-                title=f"Muted",
-                description=
-                f"{members.mention} has been muted for {reason} by {ctx.author.mention}",
-                color=random.choice(colors))
-            embed.set_footer(text="Aevus: Q Help")
-            await modchannel.send(embed=embed)
-    else:
-        role = discord.utils.find(lambda r: r.name == f'{moderationRole}',
-                                  ctx.guild.roles)
-        if role in ctx.author.roles:
-            rolee = discord.utils.get(ctx.guild.roles, name="Muted")
-            await members.add_roles(rolee)
-            if docs.get().exists:
-                server = u'{}'.format(
-                    docs.get(
-                        {u'ModerationChannel'}).to_dict()['ModerationChannel'])
-                modchannel = bot.get_channel(int(server))
-                embed = discord.Embed(
-                    title=f"Muted",
-                    description=
-                    f"{members.mention} has been muted for **{reason}** by {ctx.author.mention}",
-                    color=random.choice(colors))
-                embed.set_footer(text="Aevus: Q Help")
-                await modchannel.send(embed=embed)
-        else:
-            await ctx.send("`Missing Permissions`")
-
-@bot.command()
-async def UnMute(ctx, member: discord.Member):
-    docs = db.collection(u'Servers').document(str(ctx.message.guild.id))
-    try:
-        moderationRole = u'{}'.format(
-            docs.get({u'ModRole'}).to_dict()['ModRole'])
-    except:
-        moderationRole = 'None'
-    if str(moderationRole) == 'None':
-        rolee = discord.utils.get(ctx.guild.roles, name="Muted")
-        await member.remove_roles(rolee)
-        if docs.get().exists:
-            server = u'{}'.format(
-                docs.get(
-                    {u'ModerationChannel'}).to_dict()['ModerationChannel'])
-            modchannel = bot.get_channel(int(server))
-            embed = discord.Embed(
-                title=f"UnMuted",
-                description=
-                f"{member.mention} has been unmuted by {ctx.author.mention}",
-                color=random.choice(colors))
-            embed.set_footer(text="Aevus: Q Help")
-            await modchannel.send(embed=embed)
-    else:
-        role = discord.utils.find(lambda r: r.name == f'{moderationRole}',
-                                  ctx.guild.roles)
-        if role in ctx.author.roles:
-            rolee = discord.utils.get(ctx.guild.roles, name="Muted")
-            await member.remove_roles(rolee)
-            if docs.get().exists:
-                server = u'{}'.format(
-                    docs.get(
-                        {u'ModerationChannel'}).to_dict()['ModerationChannel'])
-                modchannel = bot.get_channel(int(server))
-                embed = discord.Embed(
-                    title=f"UnMuted",
-                    description=
-                    f"{member.mention} has been unmuted by {ctx.author.mention}",
-                    color=random.choice(colors))
-                embed.set_footer(text="Aevus: Q Help")
-                await modchannel.send(embed=embed)
-        else:
-            await ctx.send("`Missing Permissions`")
-    role = discord.utils.get(ctx.guild.roles, name="Muted")
-
-@bot.command()
-async def Invite(ctx, member=None):
-    if member == None:
-        invitelink = await ctx.channel.create_invite(max_uses=1, unique=True)
-        await ctx.send(invitelink)
-    else:
-        channel = await member.create_dm()
-        #creating invite link
-        invitelink = await ctx.channel.create_invite(max_uses=1, unique=True)
-        #dming it to the person
-        await channel.send(invitelink)
 
 @bot.command()
 async def LeaveJob(ctx):
@@ -2330,8 +2436,6 @@ async def CreateJob(ctx, name:str,amount:int,pay:int,lvl:int):
         u'Amount': int(amount),
       })
     
-    
-
 @bot.command()
 async def Migrate(ctx):
   await ctx.channel.purge(limit=1)
@@ -2438,9 +2542,16 @@ async def Host(ctx):
     await ctx.send(embed=embed)
 
 @bot.command()
-async def die(ctx):
-  await ctx.send("Close to 800 000 people die by suicide every year. Furthermore, for each suicide, there are more than 20 suicide attempts. Suicides and suicide attempts have a ripple effect that impacts on families, friends, colleagues, communities and societies. Suicides are preventable. Much can be done to prevent suicide at individual, community and national levels.")
-  await ctx.send("https://www.who.int/health-topics/suicide#tab=tab_1")
+async def Reset(ctx):
+  docs = db.collection(u'UserData').document(str(ctx.author.id))
+  dt_string = datetime.now().strftime("%d/%m/%Y")
+  docs.set({
+      u'Level': 1,
+      u'Job': u'None',
+      u'Cash': 100,
+      u'XP': 0,
+      u'Joined': dt_string,
+  },merge=True)
 
 @bot.command()
 async def Members(ctx):
@@ -2577,7 +2688,13 @@ async def Help(ctx,helptype = "None"):
         description=
         "iQ is the ultimate moderation bot! It has everything relating to server management. ",
         color=random.choice(colors))
-      embed.add_field(name="Moderation", value="`Q Help Moderation`\nex. Kick, Ban", inline=False)
+      embed.add_field(name="Daily Payment", value="`Q Daily`", inline=False)
+      embed.add_field(name="View Jobs", value="`Q Jobs`", inline=False)
+      embed.add_field(name="Join Job", value="`Q Hire JobName`", inline=False)
+      embed.add_field(name="Leave Job", value="`Q LeaveJob`", inline=False)
+      embed.add_field(name="Work", value="`Q Work`", inline=False)
+      embed.add_field(name="Leave Job", value="`Q LeaveJob`", inline=False)
+      embed.add_field(name="Leave Job", value="`Q LeaveJob`", inline=False)
       await ctx.send(embed=embed)
 
 @bot.command()
