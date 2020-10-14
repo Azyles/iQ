@@ -1734,37 +1734,18 @@ async def Fish(ctx):
   userinv = db.collection("UserData").document(str(ctx.author.id)).collection("Inventory").document("fishingrod")
   if userinv.get().exists:
       chance = random.randrange(0, 101)
-      if chance >= 95:    
+      if chance >= 81:    
         db.collection("UserData").document(str(ctx.author.id)).collection("Inventory").document("fishingrod").delete()
         userdata = db.collection("UserData").document(str(ctx.author.id))
         xp = u'{}'.format(userdata.get({u'XP'}).to_dict()['XP'])
         xp = int(xp) + random.randrange(-20, 0)
         await ctx.send(f"{ctx.author.mention} Fishing Rod Broke :(")
-      elif  95 > chance >= 20 :
-        prize = random.randrange(100, 300)
+      else:
+        prize = random.randrange(1050, 1550)
         await ctx.send(f"{ctx.author.mention} You sold your catches for ${prize}")
         userdata = db.collection("UserData").document(str(ctx.author.id))
         xp = u'{}'.format(userdata.get({u'XP'}).to_dict()['XP'])
-        xp = int(xp) + random.randrange(5, 15)
-        if int(xp)>1000:
-          level = u'{}'.format(userdata.get({u'Level'}).to_dict()['Level'])
-          level = int(level) + 1
-          userdata.set({
-            u'Level': int(level)
-          }, merge=True)
-          xp = 0
-        cash = u'{}'.format(userdata.get({u'Cash'}).to_dict()['Cash'])
-        cash = int(cash) + prize
-        userdata.set({
-          u'Cash': cash,
-          u'XP': xp 
-        }, merge=True)
-      elif chance < 20:
-        prize = random.randrange(700, 1200)
-        await ctx.send(f"{ctx.author.mention} You sold your catches for ${prize}")
-        userdata = db.collection("UserData").document(str(ctx.author.id))
-        xp = u'{}'.format(userdata.get({u'XP'}).to_dict()['XP'])
-        xp = int(xp) + random.randrange(10, 25)
+        xp = int(xp) + random.randrange(10, 20)
         if int(xp)>1000:
           level = u'{}'.format(userdata.get({u'Level'}).to_dict()['Level'])
           level = int(level) + 1
@@ -2693,9 +2674,14 @@ async def Help(ctx,helptype = "None"):
       embed.add_field(name="Join Job", value="`Q Hire JobName`", inline=False)
       embed.add_field(name="Leave Job", value="`Q LeaveJob`", inline=False)
       embed.add_field(name="Work", value="`Q Work`", inline=False)
-      embed.add_field(name="Leave Job", value="`Q LeaveJob`", inline=False)
-      embed.add_field(name="Leave Job", value="`Q LeaveJob`", inline=False)
+      embed.add_field(name="Gamble", value="`Q luck`", inline=False)
+      embed.add_field(name="Steal", value="`Q Steal (Mention User)`", inline=False)
+      embed.add_field(name="Fish", value="`Q Fish`", inline=False)
+      embed.add_field(name="Lottery", value="`Q lottery`", inline=False)
+      embed.add_field(name="Carnival", value="`Q Carnival`", inline=False)
+      embed.add_field(name="Rob", value="`Q Rob`", inline=False)
       await ctx.send(embed=embed)
+    
 
 @bot.command()
 async def Logo(ctx):
