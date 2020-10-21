@@ -1,2 +1,2 @@
 # iQ
-Ultimate moderation discord bot
+Ultimate moderation discord bot + ECONOMY
